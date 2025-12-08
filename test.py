@@ -22,58 +22,84 @@ def make_env(render_mode=None, **kwargs):
 
 
 def test_agent(model_path, n_episodes=5, render=True):
-    """
-    Evalúa un agente entrenado.
-    
-    Args:
-        model_path: Ruta al modelo .zip
-        n_episodes: Número de episodios
-        render: Si mostrar el juego
-    """
+    """Evalúa un agente entrenado y reporta más métricas útiles."""
     # Crear entorno
     render_mode = 'human' if render else None
     env = DummyVecEnv([make_env(render_mode=render_mode)])
     env = VecFrameStack(env, n_stack=4)
-    
+
     # Cargar modelo
     model = DQN.load(model_path)
     print(f"Modelo cargado desde {model_path}")
     print(f"\nEvaluando durante {n_episodes} episodios...\n")
-    
+
     episode_rewards = []
     episode_scores = []
-    
+    episode_steps = []
+    episode_lives_left = []
+    results = []  # 'win' | 'loss' | 'timeout'
+
     for episode in range(n_episodes):
         obs = env.reset()
         episode_reward = 0
         done = False
         steps = 0
-        
+        truncated = False
+
         while not done:
             action, _ = model.predict(obs, deterministic=True)
             obs, reward, done, info = env.step(action)
             episode_reward += reward[0]
             steps += 1
-            
+
             if render:
                 env.envs[0].render()
                 time.sleep(0.016)  # ~60 FPS
-        
+
+            truncated = info[0].get('TimeLimit.truncated', False)
+
         score = info[0].get('score', episode_reward)
+        lives_left = info[0].get('lives', 0)
+
+        # Determinar resultado
+        if truncated:
+            result = 'timeout'
+        elif lives_left > 0:
+            result = 'win'
+        else:
+            result = 'loss'
+
         episode_rewards.append(episode_reward)
         episode_scores.append(score)
-        print(f"Episode {episode + 1}: Score = {score:.0f}, Reward = {episode_reward:.1f}, Steps = {steps}")
-    
+        episode_steps.append(steps)
+        episode_lives_left.append(lives_left)
+        results.append(result)
+
+        print(
+            f"Episode {episode + 1}: "
+            f"Result={result.upper():7s} | "
+            f"Score={score:.0f} | Reward={episode_reward:.1f} | Steps={steps} | Lives={lives_left}"
+        )
+
     env.close()
-    
+
+    wins = results.count('win')
+    losses = results.count('loss')
+    timeouts = results.count('timeout')
+
     # Estadísticas
-    print(f"\n{'='*50}")
+    print(f"\n{'='*60}")
     print(f"RESULTADOS ({n_episodes} episodios):")
-    print(f"{'='*50}")
-    print(f"Score medio:      {np.mean(episode_scores):.2f} +/- {np.std(episode_scores):.2f}")
-    print(f"Recompensa media: {np.mean(episode_rewards):.2f} +/- {np.std(episode_rewards):.2f}")
-    print(f"Mejor score:      {np.max(episode_scores):.0f}")
-    print(f"Peor score:       {np.min(episode_scores):.0f}")
+    print(f"{'='*60}")
+    print(f"Score medio:        {np.mean(episode_scores):.2f} +/- {np.std(episode_scores):.2f}")
+    print(f"Recompensa media:   {np.mean(episode_rewards):.2f} +/- {np.std(episode_rewards):.2f}")
+    print(f"Pasos medios:       {np.mean(episode_steps):.1f} +/- {np.std(episode_steps):.1f}")
+    print(f"Vidas restantes:    {np.mean(episode_lives_left):.2f} +/- {np.std(episode_lives_left):.2f}")
+    print(f"Win rate:           {wins / n_episodes:.2%}  ({wins}/{n_episodes})")
+    print(f"Timeout rate:       {timeouts / n_episodes:.2%}  ({timeouts}/{n_episodes})")
+    print(f"Loss rate:          {losses / n_episodes:.2%}  ({losses}/{n_episodes})")
+    print(f"Mejor score:        {np.max(episode_scores):.0f}")
+    print(f"Peor score:         {np.min(episode_scores):.0f}")
 
 
 def play_human():

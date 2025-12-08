@@ -22,7 +22,7 @@ def make_env(render_mode=None, **kwargs):
 
 
 def train_dqn(
-    total_timesteps=500_000,
+    total_timesteps=1_500_000,
     save_freq=50_000,
     model_dir='models',
     log_dir='logs',
@@ -31,7 +31,7 @@ def train_dqn(
     paddle_width=1.0,
     brick_rows=6,
     brick_cols=10,
-    max_steps=10000,
+    max_steps=7_000,
     reward_shaping=False
 ):
     """
@@ -150,13 +150,13 @@ def train_dqn(
 if __name__ == '__main__':
     # Entrenamiento normal (sin curriculum)
     model = train_dqn(
-        total_timesteps=500_000,
+        total_timesteps=1_500_000,
         save_freq=50_000,
         # Parámetros normales del juego
         ball_speed=1.0,
         paddle_width=1.0,
         brick_rows=6,
         brick_cols=10,
-        max_steps=10000,
+        max_steps=7_000,
         reward_shaping=False
     )

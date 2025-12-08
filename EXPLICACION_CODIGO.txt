@@ -1,0 +1,575 @@
+================================================================================
+EXPLICACIÓN DEL PROYECTO DE REINFORCEMENT LEARNING - BREAKOUT CON DQN
+================================================================================
+
+Este documento explica en detalle todo el código del proyecto.
+
+================================================================================
+1. ESTRUCTURA DEL PROYECTO
+================================================================================
+
+El proyecto tiene 4 archivos principales:
+
+├── breakout_env.py    → Entorno del juego Breakout (custom, modificable)
+├── train.py           → Entrenamiento del agente con DQN
+├── test.py            → Evaluación del agente y modo jugar humano
+└── requirements.txt   → Dependencias
+
+================================================================================
+2. breakout_env.py - EL ENTORNO DEL JUEGO
+================================================================================
+
+Este archivo implementa el juego Breakout desde cero usando Gymnasium.
+Gymnasium es una librería estándar para crear entornos de RL.
+
+--------------------------------------------------------------------------------
+2.1 CLASE BreakoutEnv
+--------------------------------------------------------------------------------
+
+class BreakoutEnv(gym.Env):
+
+Hereda de gym.Env, que es la clase base para todos los entornos de Gymnasium.
+Todo entorno de RL debe implementar 3 métodos principales:
+- __init__: Inicialización
+- reset: Reiniciar el juego
+- step: Ejecutar una acción y avanzar un paso
+
+--------------------------------------------------------------------------------
+2.2 CONSTRUCTOR __init__
+--------------------------------------------------------------------------------
+
+def __init__(
+    self,
+    render_mode=None,      # 'human' para ver el juego, None para entrenar
+    ball_speed=1.0,        # Multiplicador de velocidad de pelota
+    paddle_width=1.0,      # Multiplicador de ancho de pala
+    brick_rows=6,          # Filas de ladrillos
+    brick_cols=10,         # Columnas de ladrillos
+    max_steps=10000,       # Máximo de pasos por episodio
+    reward_shaping=False   # Si dar recompensa extra por golpear pelota
+):
+
+PARÁMETROS PARA CURRICULUM LEARNING:
+Estos parámetros permiten hacer el juego más fácil o difícil.
+- ball_speed=0.5 → Pelota a mitad de velocidad
+- paddle_width=2.0 → Pala el doble de ancha
+- brick_rows=2 → Solo 2 filas de ladrillos
+
+ESPACIOS DE ACCIÓN Y OBSERVACIÓN:
+
+self.action_space = spaces.Discrete(3)
+
+Esto define que hay 3 acciones posibles:
+- 0: NOOP (no hacer nada)
+- 1: Mover a la izquierda
+- 2: Mover a la derecha
+
+self.observation_space = spaces.Box(
+    low=0, high=255, shape=(84, 84, 1), dtype=np.uint8
+)
+
+Esto define que las observaciones son:
+- Imágenes en escala de grises
+- De tamaño 84x84 píxeles
+- Con valores de 0 a 255
+- Con 1 canal (escala de grises)
+
+El tamaño 84x84 es estándar en RL para Atari porque:
+1. Es suficiente para distinguir objetos
+2. Es pequeño para entrenar rápido
+3. Es divisible por potencias de 2 (bueno para CNNs)
+
+--------------------------------------------------------------------------------
+2.3 MÉTODO reset()
+--------------------------------------------------------------------------------
+
+def reset(self, seed=None, options=None):
+
+Se llama al inicio de cada episodio (partida).
+
+PASOS:
+1. Posiciona la pala en el centro inferior
+2. Posiciona la pelota arriba, debajo de los ladrillos
+3. Da velocidad inicial a la pelota (hacia abajo, ángulo aleatorio)
+4. Crea los ladrillos
+5. Inicializa contadores (score, vidas, pasos)
+6. Establece 30 frames de gracia (pelota quieta)
+
+FRAMES DE GRACIA:
+self.grace_frames = 30
+
+Durante 30 frames (~0.5 segundos), la pelota no se mueve.
+Esto da tiempo al agente para posicionarse.
+Sin esto, a veces la pelota caería antes de que el agente pudiera reaccionar.
+
+RETORNO:
+return observation, info
+
+- observation: Imagen del estado actual (84x84x1)
+- info: Diccionario con info extra (score, vidas)
+
+--------------------------------------------------------------------------------
+2.4 MÉTODO step(action)
+--------------------------------------------------------------------------------
+
+def step(self, action):
+
+Este es el método más importante. Se llama en cada paso del juego.
+
+PASOS:
+
+1. MOVER LA PALA:
+   if action == 1:  # LEFT
+       self.paddle_x = max(0, self.paddle_x - paddle_speed)
+   elif action == 2:  # RIGHT
+       self.paddle_x = min(self.screen_width - self.paddle_width, 
+                          self.paddle_x + paddle_speed)
+   
+   max() y min() evitan que la pala salga de la pantalla.
+
+2. FRAMES DE GRACIA:
+   if self.grace_frames > 0:
+       self.grace_frames -= 1
+   else:
+       # Mover pelota y comprobar colisiones
+   
+   Si quedan frames de gracia, la pelota no se mueve.
+
+3. MOVER PELOTA:
+   self.ball_x += self.ball_vx
+   self.ball_y += self.ball_vy
+   
+   La pelota se mueve sumando su velocidad a su posición.
+
+4. COLISIONES CON PAREDES:
+   if self.ball_x <= 0:
+       self.ball_x = 0
+       self.ball_vx = -self.ball_vx  # Rebota invirtiendo velocidad X
+   
+   Cuando toca una pared, invierte la velocidad en ese eje.
+
+5. COLISIÓN CON PALA:
+   if self._check_paddle_collision():
+       self.ball_vy = -abs(self.ball_vy)  # Siempre hacia arriba
+       
+       # Ajustar ángulo según dónde golpea
+       hit_pos = (ball_center - paddle_center) / (paddle_width / 2)
+       self.ball_vx = speed * hit_pos * 0.8
+   
+   Si golpea en el centro → va recto hacia arriba
+   Si golpea en los lados → va en ángulo
+
+6. COLISIÓN CON LADRILLOS:
+   brick_reward = self._check_brick_collisions()
+   reward += brick_reward  # +1 por cada ladrillo
+   
+   Cada ladrillo destruido da +1 de recompensa.
+
+7. PERDER VIDA:
+   if self.ball_y >= self.screen_height:
+       self.lives -= 1
+       if self.lives <= 0:
+           terminated = True
+           reward -= 1.0  # Penalización por perder
+       else:
+           self._reset_ball()  # Nueva vida, nueva pelota
+
+8. GANAR:
+   if all(not b["alive"] for b in self.bricks):
+       terminated = True
+       reward += 10.0  # Bonus por ganar
+
+RETORNO:
+return observation, reward, terminated, truncated, info
+
+- observation: Nueva imagen del estado
+- reward: Recompensa obtenida este paso
+- terminated: True si el juego terminó (ganó o perdió todas las vidas)
+- truncated: True si se alcanzó el límite de pasos
+- info: Diccionario con info extra
+
+--------------------------------------------------------------------------------
+2.5 MÉTODO _get_observation()
+--------------------------------------------------------------------------------
+
+def _get_observation(self):
+
+Genera la imagen que ve el agente.
+
+PASOS:
+1. Crear imagen negra de 210x160 (tamaño original de Atari)
+2. Dibujar ladrillos (diferentes tonos de gris)
+3. Dibujar pala (blanco)
+4. Dibujar pelota (blanco)
+5. Redimensionar a 84x84
+6. Añadir dimensión del canal: (84, 84) → (84, 84, 1)
+
+¿POR QUÉ ESCALA DE GRISES?
+- Menos datos que procesar (1 canal vs 3)
+- El color no es importante para el juego
+- Entrena más rápido
+
+--------------------------------------------------------------------------------
+2.6 MÉTODO render()
+--------------------------------------------------------------------------------
+
+def render(self):
+
+Dibuja el juego en pantalla usando Pygame.
+Solo se usa cuando render_mode='human' (para ver el juego).
+
+Durante el entrenamiento, render_mode=None y no se dibuja nada.
+Esto hace el entrenamiento mucho más rápido.
+
+
+================================================================================
+3. train.py - ENTRENAMIENTO DEL AGENTE
+================================================================================
+
+Este archivo entrena al agente usando DQN de Stable Baselines3.
+
+--------------------------------------------------------------------------------
+3.1 FUNCIÓN make_env()
+--------------------------------------------------------------------------------
+
+def make_env(render_mode=None, **kwargs):
+    def _init():
+        env = BreakoutEnv(render_mode=render_mode, **kwargs)
+        env = Monitor(env)
+        return env
+    return _init
+
+Esta función crea una "fábrica" de entornos.
+- Devuelve una función (_init) que crea entornos
+- Monitor() registra estadísticas del entorno
+- **kwargs permite pasar parámetros al entorno (ball_speed, etc.)
+
+¿POR QUÉ UNA FUNCIÓN QUE DEVUELVE UNA FUNCIÓN?
+Stable Baselines3 necesita poder crear múltiples copias del entorno.
+Por eso necesita una función que cree entornos, no un entorno directamente.
+
+--------------------------------------------------------------------------------
+3.2 FUNCIÓN train_dqn()
+--------------------------------------------------------------------------------
+
+def train_dqn(
+    total_timesteps=500_000,  # Pasos totales de entrenamiento
+    save_freq=50_000,         # Guardar modelo cada X pasos
+    ...
+    ball_speed=1.0,           # Parámetros del entorno
+    paddle_width=1.0,
+    ...
+):
+
+CREAR ENTORNO:
+
+env = DummyVecEnv([make_env(**env_kwargs)])
+env = VecFrameStack(env, n_stack=4)
+
+DummyVecEnv: Convierte el entorno en un "vectorized environment".
+- Permite ejecutar múltiples entornos en paralelo (aunque aquí solo usamos 1)
+- Es el formato que espera Stable Baselines3
+
+VecFrameStack: Apila 4 frames consecutivos.
+- Entrada: imagen de (84, 84, 1)
+- Salida: imagen de (84, 84, 4)
+
+¿POR QUÉ APILAR 4 FRAMES?
+Un solo frame no tiene información de movimiento.
+No sabes si la pelota va hacia arriba o hacia abajo.
+Con 4 frames, el agente puede inferir la dirección y velocidad.
+
+CALLBACKS:
+
+checkpoint_callback = CheckpointCallback(
+    save_freq=save_freq,
+    save_path=model_dir,
+    name_prefix='dqn_breakout'
+)
+
+Los callbacks ejecutan código durante el entrenamiento:
+- CheckpointCallback: Guarda el modelo cada X pasos
+- EvalCallback: Evalúa el modelo periódicamente y guarda el mejor
+
+CREAR AGENTE DQN:
+
+model = DQN(
+    policy='CnnPolicy',              # Red neuronal convolucional
+    env=env,                         # Entorno
+    learning_rate=1e-4,              # Tasa de aprendizaje
+    buffer_size=50_000,              # Tamaño del replay buffer
+    learning_starts=1_000,           # Pasos antes de empezar a entrenar
+    batch_size=32,                   # Muestras por actualización
+    gamma=0.99,                      # Factor de descuento
+    train_freq=4,                    # Entrenar cada 4 pasos
+    target_update_interval=1_000,    # Actualizar target network
+    exploration_fraction=0.1,        # Fracción para decaer epsilon
+    exploration_initial_eps=1.0,     # Epsilon inicial (100% exploración)
+    exploration_final_eps=0.05,      # Epsilon final (5% exploración)
+    tensorboard_log=log_dir,         # Logs para TensorBoard
+    verbose=1                        # Mostrar progreso
+)
+
+PARÁMETROS IMPORTANTES:
+
+policy='CnnPolicy':
+Red neuronal convolucional (CNN) diseñada para imágenes.
+Tiene capas convolucionales que detectan patrones visuales.
+
+learning_rate=1e-4:
+Qué tan rápido aprende. Muy alto = inestable. Muy bajo = lento.
+
+buffer_size=50_000:
+Cuántas experiencias recordar. Más = más memoria, mejor muestreo.
+
+gamma=0.99:
+Factor de descuento para recompensas futuras.
+0.99 significa que las recompensas futuras valen casi tanto como las actuales.
+
+exploration_initial_eps=1.0 → exploration_final_eps=0.05:
+Al principio, 100% de acciones aleatorias (exploración).
+Al final, solo 5% aleatorias (explotación de lo aprendido).
+
+ENTRENAR:
+
+model.learn(
+    total_timesteps=total_timesteps,
+    callback=[checkpoint_callback, eval_callback],
+    progress_bar=False
+)
+
+Esto entrena el modelo durante total_timesteps pasos.
+
+
+================================================================================
+4. test.py - EVALUACIÓN Y MODO JUGAR
+================================================================================
+
+--------------------------------------------------------------------------------
+4.1 FUNCIÓN test_agent()
+--------------------------------------------------------------------------------
+
+def test_agent(model_path, n_episodes=5, render=True):
+
+Carga un modelo entrenado y lo evalúa.
+
+CARGAR MODELO:
+model = DQN.load(model_path)
+
+Carga los pesos de la red neuronal desde un archivo .zip.
+
+EJECUTAR EPISODIOS:
+for episode in range(n_episodes):
+    obs = env.reset()
+    done = False
+    
+    while not done:
+        action, _ = model.predict(obs, deterministic=True)
+        obs, reward, done, info = env.step(action)
+
+model.predict(obs, deterministic=True):
+- Dado el estado actual (obs), predice la mejor acción
+- deterministic=True: siempre elige la mejor acción (sin exploración)
+
+--------------------------------------------------------------------------------
+4.2 FUNCIÓN play_human()
+--------------------------------------------------------------------------------
+
+def play_human():
+
+Permite jugar como humano usando el teclado.
+
+CONTROLES:
+- ← (flecha izquierda): Mover pala a la izquierda
+- → (flecha derecha): Mover pala a la derecha
+- Q: Salir
+
+Útil para:
+- Probar que el juego funciona correctamente
+- Comparar tu rendimiento con el del agente
+
+
+================================================================================
+5. ¿CÓMO FUNCIONA DQN?
+================================================================================
+
+DQN (Deep Q-Network) es un algoritmo de Reinforcement Learning.
+
+--------------------------------------------------------------------------------
+5.1 CONCEPTOS BÁSICOS
+--------------------------------------------------------------------------------
+
+ESTADO (s):
+Lo que ve el agente. En nuestro caso, 4 frames apilados (84x84x4).
+
+ACCIÓN (a):
+Lo que hace el agente. En nuestro caso: NOOP, LEFT, o RIGHT.
+
+RECOMPENSA (r):
+Feedback del entorno. +1 por ladrillo, -1 por perder, +10 por ganar.
+
+POLÍTICA (π):
+La estrategia del agente. Dado un estado, qué acción tomar.
+
+Q-VALUE Q(s, a):
+Valor esperado de tomar acción 'a' en estado 's'.
+Si Q(estado, LEFT) = 10 y Q(estado, RIGHT) = 5:
+→ Es mejor ir a la izquierda.
+
+--------------------------------------------------------------------------------
+5.2 LA IDEA DE DQN
+--------------------------------------------------------------------------------
+
+1. El agente tiene una RED NEURONAL que predice Q(s, a) para cada acción.
+
+2. Dado un estado s, calcula Q(s, a) para todas las acciones.
+   Ejemplo: Q(s, NOOP)=2.1, Q(s, LEFT)=5.3, Q(s, RIGHT)=3.7
+
+3. Elige la acción con mayor Q-value (o aleatoria si está explorando).
+   Ejemplo: Elige LEFT porque tiene Q=5.3
+
+4. Ejecuta la acción y observa la recompensa y nuevo estado.
+
+5. Guarda la experiencia (s, a, r, s') en el REPLAY BUFFER.
+
+6. Muestrea experiencias aleatorias del buffer y entrena la red.
+
+--------------------------------------------------------------------------------
+5.3 ECUACIÓN DE BELLMAN
+--------------------------------------------------------------------------------
+
+Q(s, a) = r + γ * max_a' Q(s', a')
+
+Donde:
+- r: recompensa inmediata
+- γ (gamma): factor de descuento (0.99)
+- s': siguiente estado
+- max_a' Q(s', a'): mejor Q-value del siguiente estado
+
+EJEMPLO:
+- Estás en estado s, tomas acción a
+- Recibes r=1 (rompiste un ladrillo)
+- Llegas a estado s'
+- En s', el mejor Q-value es 5.0
+- Entonces: Q(s, a) = 1 + 0.99 * 5.0 = 5.95
+
+La red aprende a predecir estos valores Q correctamente.
+
+--------------------------------------------------------------------------------
+5.4 ¿POR QUÉ REPLAY BUFFER?
+--------------------------------------------------------------------------------
+
+Sin buffer:
+- Aprendes de experiencias consecutivas
+- Están muy correlacionadas → entrenamiento inestable
+
+Con buffer:
+- Guardas miles de experiencias
+- Muestreas aleatoriamente para entrenar
+- Rompes la correlación → entrenamiento estable
+
+--------------------------------------------------------------------------------
+5.5 ¿POR QUÉ TARGET NETWORK?
+--------------------------------------------------------------------------------
+
+DQN usa dos redes:
+1. Policy Network: Se entrena constantemente
+2. Target Network: Se actualiza periódicamente
+
+¿Por qué?
+Si usas la misma red para predecir y calcular targets:
+- Los targets cambian mientras entrenas
+- Es como perseguir un objetivo que se mueve
+- Inestable
+
+Con target network:
+- Los targets son estables (no cambian cada paso)
+- Se actualiza cada 1000 pasos
+- Entrenamiento más estable
+
+
+================================================================================
+6. CURRICULUM LEARNING (FUTURO)
+================================================================================
+
+La idea es entrenar en fases de dificultad creciente.
+
+FASE 1 - MUY FÁCIL:
+env = BreakoutEnv(
+    ball_speed=0.5,      # Pelota lenta
+    paddle_width=2.0,    # Pala grande
+    brick_rows=2,        # Pocos ladrillos
+    reward_shaping=True  # Recompensa por golpear
+)
+# El agente aprende a mover la pala y golpear la pelota
+
+FASE 2 - FÁCIL:
+env = BreakoutEnv(
+    ball_speed=0.7,
+    paddle_width=1.5,
+    brick_rows=3,
+)
+# Transferir el modelo de fase 1 y seguir entrenando
+
+FASE 3 - NORMAL:
+env = BreakoutEnv(
+    ball_speed=1.0,
+    paddle_width=1.0,
+    brick_rows=6,
+)
+# Transferir el modelo de fase 2 y seguir entrenando
+
+VENTAJA:
+El agente aprende conceptos básicos primero (mover pala) antes de
+enfrentarse al juego completo. Esto puede hacer el aprendizaje más
+rápido y eficiente.
+
+
+================================================================================
+7. COMANDOS ÚTILES
+================================================================================
+
+# Entrenar
+python train.py
+
+# Ver progreso en TensorBoard
+tensorboard --logdir logs
+
+# Evaluar un modelo
+python test.py models/best_model.zip 5
+
+# Jugar como humano
+python test.py --play
+
+
+================================================================================
+8. GLOSARIO
+================================================================================
+
+CNN (Convolutional Neural Network):
+Red neuronal especializada en procesar imágenes.
+
+Episodio:
+Una partida completa del juego (desde reset hasta terminar).
+
+Timestep:
+Un paso de simulación. El agente toma una acción por timestep.
+
+Replay Buffer:
+Memoria que guarda experiencias pasadas para entrenar.
+
+Epsilon-Greedy:
+Estrategia de exploración. Con probabilidad ε, elige acción aleatoria.
+
+Target Network:
+Copia de la red que se actualiza lentamente para estabilizar.
+
+Reward Shaping:
+Añadir recompensas intermedias para guiar el aprendizaje.
+
+Frame Stacking:
+Apilar varios frames para dar información temporal.
+
+================================================================================
+FIN DEL DOCUMENTO
+================================================================================

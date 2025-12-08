@@ -204,7 +204,7 @@ class BreakoutEnv(gym.Env):
             if self.ball_y >= self.screen_height:
                 self.lives -= 1
                 if self.lives <= 0:
-                    reward -= 1.0  # Penalización por perder
+                    reward -= 5.0  # Penalización por perder vida
                 else:
                     self._reset_ball()
         
@@ -216,7 +216,7 @@ class BreakoutEnv(gym.Env):
         # Ganar (todos los ladrillos destruidos)
         if all(not b["alive"] for b in self.bricks):
             terminated = True
-            reward += 10.0  # Bonus por ganar
+            reward += 20.0  # Bonus por ganar
         
         # Máximo de pasos
         truncated = self.steps >= self.max_steps

@@ -1,0 +1,138 @@
+Modelo cargado desde models/dqn_breakout_final.zip (1M total_timesteps)
+
+Evaluando durante 5 episodios...
+
+Episode 1: Result=LOSS    | Score=42 | Reward=41.0 | Steps=2804 | Lives=0
+Episode 2: Result=LOSS    | Score=37 | Reward=36.0 | Steps=2581 | Lives=0
+Episode 3: Result=LOSS    | Score=58 | Reward=57.0 | Steps=6684 | Lives=0
+Episode 4: Result=LOSS    | Score=48 | Reward=47.0 | Steps=3582 | Lives=0
+Episode 5: Result=LOSS    | Score=13 | Reward=12.0 | Steps=1246 | Lives=0
+
+============================================================
+RESULTADOS (5 episodios):
+============================================================
+Score medio:        39.60 +/- 15.03
+Recompensa media:   38.60 +/- 15.03
+Pasos medios:       3379.4 +/- 1815.6
+Vidas restantes:    0.00 +/- 0.00
+Win rate:           0.00%  (0/5)
+Timeout rate:       0.00%  (0/5)
+Loss rate:          100.00%  (5/5)
+Mejor score:        58
+Peor score:         13
+
+
+Modelo cargado desde models/dqn_curriculum_final.zip
+
+Evaluando durante 5 episodios...
+
+Episode 1: Result=LOSS    | Score=39 | Reward=38.0 | Steps=2952 | Lives=0
+Episode 2: Result=LOSS    | Score=34 | Reward=33.0 | Steps=2831 | Lives=0
+Episode 3: Result=LOSS    | Score=52 | Reward=51.0 | Steps=2850 | Lives=0
+Episode 4: Result=LOSS    | Score=27 | Reward=26.0 | Steps=1904 | Lives=0
+Episode 5: Result=WIN     | Score=60 | Reward=70.0 | Steps=5761 | Lives=3
+
+============================================================
+RESULTADOS (5 episodios):
+============================================================
+Score medio:        42.40 +/- 12.01
+Recompensa media:   43.60 +/- 15.53
+Pasos medios:       3259.6 +/- 1307.0
+Vidas restantes:    0.60 +/- 1.20
+Win rate:           20.00%  (1/5)
+Timeout rate:       0.00%  (0/5)
+Loss rate:          80.00%  (4/5)
+Mejor score:        60
+Peor score:         27
+
+
+30 eps estandar 1.5m
+Episode 1: Result=LOSS    | Score=31 | Reward=26.0 | Steps=2191 | Lives=0
+Episode 2: Result=LOSS    | Score=11 | Reward=6.0 | Steps=1064 | Lives=0
+Episode 3: Result=WIN     | Score=60 | Reward=80.0 | Steps=4687 | Lives=1
+Episode 4: Result=WIN     | Score=60 | Reward=80.0 | Steps=3793 | Lives=3
+Episode 5: Result=LOSS    | Score=46 | Reward=41.0 | Steps=2570 | Lives=0
+Episode 6: Result=LOSS    | Score=21 | Reward=16.0 | Steps=1828 | Lives=0
+Episode 7: Result=LOSS    | Score=59 | Reward=54.0 | Steps=4798 | Lives=0
+Episode 8: Result=LOSS    | Score=48 | Reward=43.0 | Steps=2499 | Lives=0
+Episode 9: Result=LOSS    | Score=46 | Reward=41.0 | Steps=3638 | Lives=0
+Episode 10: Result=LOSS    | Score=58 | Reward=53.0 | Steps=6111 | Lives=0
+Episode 11: Result=LOSS    | Score=58 | Reward=53.0 | Steps=5216 | Lives=0
+Episode 12: Result=LOSS    | Score=5 | Reward=0.0 | Steps=558 | Lives=0
+Episode 13: Result=WIN     | Score=60 | Reward=80.0 | Steps=4575 | Lives=3
+Episode 14: Result=LOSS    | Score=58 | Reward=53.0 | Steps=5650 | Lives=0
+Episode 15: Result=LOSS    | Score=6 | Reward=1.0 | Steps=589 | Lives=0
+Episode 16: Result=LOSS    | Score=27 | Reward=22.0 | Steps=1732 | Lives=0
+Episode 17: Result=WIN     | Score=60 | Reward=80.0 | Steps=4252 | Lives=1
+Episode 18: Result=LOSS    | Score=55 | Reward=50.0 | Steps=4245 | Lives=0
+Episode 19: Result=LOSS    | Score=26 | Reward=21.0 | Steps=1703 | Lives=0
+Episode 20: Result=LOSS    | Score=59 | Reward=54.0 | Steps=5617 | Lives=0
+Episode 21: Result=LOSS    | Score=59 | Reward=54.0 | Steps=4438 | Lives=0
+Episode 22: Result=WIN     | Score=60 | Reward=80.0 | Steps=6562 | Lives=2
+Episode 23: Result=LOSS    | Score=4 | Reward=-1.0 | Steps=476 | Lives=0
+Episode 24: Result=WIN     | Score=60 | Reward=80.0 | Steps=4838 | Lives=4
+Episode 25: Result=LOSS    | Score=58 | Reward=53.0 | Steps=5096 | Lives=0
+Episode 26: Result=WIN     | Score=60 | Reward=80.0 | Steps=3422 | Lives=4
+Episode 27: Result=LOSS    | Score=49 | Reward=44.0 | Steps=2902 | Lives=0
+Episode 28: Result=LOSS    | Score=46 | Reward=41.0 | Steps=2944 | Lives=0
+Episode 29: Result=LOSS    | Score=54 | Reward=49.0 | Steps=3487 | Lives=0
+Episode 30: Result=LOSS    | Score=14 | Reward=9.0 | Steps=961 | Lives=0
+============================================================
+RESULTADOS (30 episodios):
+============================================================
+Score medio:        43.93 +/- 19.48
+Recompensa media:   44.77 +/- 26.06
+Pasos medios:       3414.7 +/- 1739.5
+Vidas restantes:    0.60 +/- 1.23
+Win rate:           23.33%  (7/30)
+Timeout rate:       0.00%  (0/30)
+Loss rate:          76.67%  (23/30)
+Mejor score:        60
+Peor score:         4
+
+
+curriculum 1.5m
+
+Episode 1: Result=WIN     | Score=60 | Reward=80.0 | Steps=4247 | Lives=1
+Episode 2: Result=LOSS    | Score=26 | Reward=21.0 | Steps=1705 | Lives=0
+Episode 3: Result=LOSS    | Score=35 | Reward=30.0 | Steps=2604 | Lives=0
+Episode 4: Result=WIN     | Score=60 | Reward=80.0 | Steps=4023 | Lives=4
+Episode 5: Result=LOSS    | Score=25 | Reward=20.0 | Steps=1986 | Lives=0
+Episode 6: Result=LOSS    | Score=52 | Reward=47.0 | Steps=3902 | Lives=0
+Episode 7: Result=WIN     | Score=60 | Reward=80.0 | Steps=7541 | Lives=2
+Episode 8: Result=WIN     | Score=60 | Reward=80.0 | Steps=6071 | Lives=1
+Episode 9: Result=WIN     | Score=60 | Reward=80.0 | Steps=5055 | Lives=1
+Episode 10: Result=WIN     | Score=60 | Reward=80.0 | Steps=5511 | Lives=2
+Episode 11: Result=LOSS    | Score=20 | Reward=15.0 | Steps=1528 | Lives=0
+Episode 12: Result=WIN     | Score=60 | Reward=80.0 | Steps=5466 | Lives=1
+Episode 13: Result=WIN     | Score=60 | Reward=80.0 | Steps=5518 | Lives=1
+Episode 14: Result=LOSS    | Score=45 | Reward=40.0 | Steps=3827 | Lives=0
+Episode 15: Result=WIN     | Score=60 | Reward=80.0 | Steps=5587 | Lives=3
+Episode 16: Result=LOSS    | Score=41 | Reward=36.0 | Steps=2708 | Lives=0
+Episode 17: Result=WIN     | Score=60 | Reward=80.0 | Steps=6644 | Lives=1
+Episode 18: Result=LOSS    | Score=59 | Reward=54.0 | Steps=5692 | Lives=0
+Episode 19: Result=WIN     | Score=60 | Reward=80.0 | Steps=7549 | Lives=3
+Episode 20: Result=WIN     | Score=60 | Reward=80.0 | Steps=6606 | Lives=5
+Episode 21: Result=LOSS    | Score=24 | Reward=19.0 | Steps=1486 | Lives=0
+Episode 22: Result=LOSS    | Score=21 | Reward=16.0 | Steps=1677 | Lives=0
+Episode 23: Result=LOSS    | Score=29 | Reward=24.0 | Steps=2286 | Lives=0
+Episode 24: Result=WIN     | Score=60 | Reward=80.0 | Steps=6101 | Lives=2
+Episode 25: Result=WIN     | Score=60 | Reward=80.0 | Steps=7178 | Lives=1
+Episode 26: Result=LOSS    | Score=55 | Reward=50.0 | Steps=4841 | Lives=0
+Episode 27: Result=LOSS    | Score=46 | Reward=41.0 | Steps=3479 | Lives=0
+Episode 28: Result=WIN     | Score=60 | Reward=80.0 | Steps=5386 | Lives=3
+Episode 29: Result=LOSS    | Score=59 | Reward=54.0 | Steps=7545 | Lives=0
+Episode 30: Result=LOSS    | Score=46 | Reward=41.0 | Steps=2927 | Lives=0
+
+============================================================
+RESULTADOS (30 episodios):
+============================================================
+Score medio:        49.43 +/- 14.26
+Recompensa media:   56.93 +/- 24.98
+Pasos medios:       4555.9 +/- 1933.1
+Vidas restantes:    1.03 +/- 1.35
+Win rate:           50.00%  (15/30)
+Timeout rate:       0.00%  (0/30)
+Loss rate:          50.00%  (15/30)
+Mejor score:        60
+Peor score:         20
