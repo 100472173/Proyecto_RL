@@ -1,0 +1,163 @@
+EJECUTAR EL ENTRENAMIENTO: python run_experiments.py
+EJECUTAR EL ANALISIS DE RESULTADOS: python analyze_results.py -r results -o figures 
+
+
+Cosas del codigo:
+Si quieres que la estabilidad mejore con más timesteps
+
+# Parámetros DQN comunes a todos los experimentos
+DQN_PARAMS = {
+    "policy": "CnnPolicy",
+    "learning_rate": 1e-4,
+    "buffer_size": 100_000,  # ✅ AUMENTAR (era 50k)
+    "learning_starts": 1_000,
+    "batch_size": 32,
+    "gamma": 0.99,
+    "train_freq": 4,
+    "gradient_steps": 1,
+    "target_update_interval": 2_000,  # ✅ AUMENTAR (era 1000)
+    "exploration_fraction": 0.15,  # ✅ AUMENTAR ligeramente (era 0.1)
+    "exploration_initial_eps": 1.0,
+    "exploration_final_eps": 0.01,  # ✅ REDUCIR (era 0.05)
+    "verbose": 1,
+}
+
+Por qué estos cambios:
+
+Buffer más grande (100k): Más diversidad de experiencias
+Target update menos frecuente (2000): Más estabilidad en el objetivo
+Exploration final más bajo (0.01): Menos ruido al final
+Más timesteps totales (1.5M): Más tiempo para converger
+
+
+Dimensiones adicionales que podrías modificar en Breakout para crear curriculums interesantes:
+
+---
+
+## 🎮 Dimensiones Modificables en Breakout
+
+### **1. Propiedades de la Bola**
+
+#### A) **Ángulos de rebote**
+```python
+"ball_bounce_randomness": 0.0 → 0.3  # Añade ruido al ángulo de rebote
+# Fácil: rebotes perfectamente predecibles
+# Difícil: rebotes con variación aleatoria
+```
+
+#### B) **Número de bolas simultáneas**
+```python
+"num_balls": 1 → 3  # Multi-ball
+# Fácil: una sola bola
+# Difícil: gestionar múltiples bolas
+```
+
+#### C) **Tamaño de la bola**
+```python
+"ball_radius": 8 → 4  # Bola más pequeña = más difícil de ver/predecir
+```
+
+---
+
+### **2. Propiedades del Paddle**
+
+#### A) **Velocidad del paddle**
+```python
+"paddle_speed": 4 → 8  # Más rápido = más control, pero más difícil de posicionar
+```
+
+#### B) **Aceleración/inercia del paddle**
+```python
+"paddle_inertia": 0.0 → 0.8  # Añade física realista (más difícil)
+# 0.0 = control instantáneo
+# 0.8 = mucha inercia, como patinar en hielo
+```
+
+#### C) **Forma del paddle**
+```python
+"paddle_shape": "flat" | "curved" | "angled"
+# Curved: rebotes en los extremos tienen más ángulo
+# Angled: lados inclinados para tiros especiales
+```
+
+---
+
+### **3. Propiedades de los Ladrillos**
+
+#### A) **Durabilidad (hits necesarios para romper)**
+```python
+"brick_durability": [1, 1, 2, 2, 3]  # Array por fila
+# Fácil: todos 1 hit
+# Difícil: algunos requieren múltiples hits
+```
+
+#### B) **Ladrillos móviles**
+```python
+"moving_bricks": False → True
+"brick_move_speed": 0.0 → 1.0
+```
+
+#### C) **Ladrillos indestructibles**
+```python
+"indestructible_brick_ratio": 0.0 → 0.3  # 30% de ladrillos irrompibles
+```
+
+#### D) **Disposición espacial (manteniendo ~60 ladrillos totales)**
+```python
+"brick_pattern": "full" | "checkerboard" | "pyramid" | "sides_only"
+```
+
+---
+
+### **4. Física del Entorno**
+
+#### A) **Gravedad**
+```python
+"gravity": 0.0 → 0.02  # La bola cae ligeramente (más realista)
+```
+
+#### B) **Fricción con el aire**
+```python
+"air_friction": 0.0 → 0.01  # La bola pierde velocidad gradualmente
+```
+
+#### C) **Tamaño del campo de juego**
+```python
+"field_width": 400 → 600  # Campo más ancho
+"field_height": 600 → 800  # Campo más alto
+```
+
+---
+
+### **5. Recompensas y Objetivos**
+
+#### A) **Power-ups**
+```python
+"enable_powerups": False → True
+"powerup_types": ["expand_paddle", "slow_ball", "multi_ball", "sticky_paddle"]
+```
+
+#### B) **Bonus por combo**
+```python
+"combo_multiplier": False → True  # Romper ladrillos consecutivos da más puntos
+```
+
+#### C) **Objetivos específicos**
+```python
+"target_bricks": [5, 12, 23]  # Romper ladrillos específicos da más puntos
+```
+
+---
+
+### **6. Observaciones (Estado)**
+
+#### A) **Campo visual parcial**
+```python
+"partial_observability": False → True
+"vision_radius": 100  # Solo ve X píxeles alrededor del paddle
+```
+
+#### B) **Ruido en las observaciones**
+```python
+"observation_noise": 0.0 → 0.1  # Añade ruido gaussiano a los píxeles
+```

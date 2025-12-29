@@ -128,7 +128,7 @@ Episode 30: Result=LOSS    | Score=46 | Reward=41.0 | Steps=2927 | Lives=0
 RESULTADOS (30 episodios):
 ============================================================
 Score medio:        49.43 +/- 14.26
-Recompensa media:   56.93 +/- 24.98
+Recompensa media:   r56.93 +/- 24.98
 Pasos medios:       4555.9 +/- 1933.1
 Vidas restantes:    1.03 +/- 1.35
 Win rate:           50.00%  (15/30)
