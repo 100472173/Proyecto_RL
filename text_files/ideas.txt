@@ -161,3 +161,20 @@ Dimensiones adicionales que podrías modificar en Breakout para crear curriculum
 ```python
 "observation_noise": 0.0 → 0.1  # Añade ruido gaussiano a los píxeles
 ```
+
+
+
+        if phase_transitions:
+            # La última transición marca el inicio de la fase final
+            # phase_transitions es una lista de diccionarios con 'episode' y 'timestep'
+            last_transition = phase_transitions[-1]
+            last_phase_idx = last_transition.get("episode", 0) if isinstance(last_transition, dict) else last_transition
+
+            last_transition = phase_transitions[-1]
+            last_phase_idx = (last_transition.get("timesteps") / 10) - 1
+
+            # Tomar los primeros n_early episodios desde ese punto
+            curriculum_rewards_early = rewards[last_phase_idx:last_phase_idx + n_early]
+        else:
+            # Si no hay transiciones (ej: baseline), usar desde el inicio
+            curriculum_rewards_early = rewards[:n_early]

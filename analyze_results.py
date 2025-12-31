@@ -259,7 +259,7 @@ def plot_jumpstart(
     experiments: Dict[str, Dict],
     output_path: str,
     baseline_name: str = "baseline",
-    n_early: int = 10,
+    n_early: int = 5,
 ):
     """
     Genera gráfico de Jumpstart (ventaja inicial vs baseline).
@@ -292,17 +292,20 @@ def plot_jumpstart(
         # Para curriculum: encontrar índice de inicio de la última fase
         if phase_transitions:
             # La última transición marca el inicio de la fase final
-            last_phase_idx = phase_transitions[-1] if phase_transitions else 0
+        
+            last_transition = phase_transitions[-1]
+            last_phase_idx = int((int(last_transition.get("timestep")) / 10000) +2)  # lo del +2 es porque se repiten las evaluaciones de las transiciones o no se que movida, hay que corregirlo asi
+            print(last_phase_idx)
+            print()
             # Tomar los primeros n_early episodios desde ese punto
-            curriculum_rewards_early = rewards[last_phase_idx:last_phase_idx + n_early]
+            curriculum_rewards_early = rewards[last_phase_idx:last_phase_idx +  n_early]
         else:
             # Si no hay transiciones (ej: baseline), usar desde el inicio
             curriculum_rewards_early = rewards[:n_early]
         
         _, jump_pct, _ = compute_jumpstart(
             curriculum_rewards_early.tolist(),
-            baseline_rewards[:n_early].tolist(),
-            n_episodes=n_early,
+            baseline_rewards[:n_early].tolist()
         )
         
         names.append(name.replace("_", " ").title())
@@ -321,7 +324,7 @@ def plot_jumpstart(
     ax.set_yticks(x)
     ax.set_yticklabels(names)
     ax.set_xlabel("Mejora vs Baseline (%)", fontsize=12)
-    ax.set_title(f"Jumpstart: Ventaja al Entrar en Fase Final (primeros {n_early} episodios)", fontsize=14)
+    ax.set_title(f"Jumpstart: Ventaja al Entrar en Fase Final (primeras {n_early} evaluaciones)", fontsize=14)
     ax.grid(True, axis='x', alpha=0.3)
     
     # Valores en las barras

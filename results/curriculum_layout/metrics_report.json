@@ -1,0 +1,18 @@
+{
+  "experiment": "curriculum_layout",
+  "total_timesteps": 1500000,
+  "n_evaluations": 154,
+  "asymptotic_mean": 38.09666666666666,
+  "asymptotic_std": 19.57047918563967,
+  "time_to_thresholds": {
+    "threshold_15.0": 670000,
+    "threshold_30.0": 750000,
+    "threshold_45.0": 1040000
+  },
+  "auc": 17.646308724832217,
+  "stability": 154.1834262068965,
+  "jumpstart_absolute": null,
+  "jumpstart_percent": null,
+  "final_reward_mean": 46.6,
+  "final_reward_std": 15.46091847207015
+}
