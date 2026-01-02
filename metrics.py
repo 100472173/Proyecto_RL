@@ -49,8 +49,7 @@ def compute_time_to_threshold(
 
 def compute_jumpstart(
     curriculum_rewards_early: List[float],
-    baseline_rewards_early: List[float],
-    n_episodes: int = 10,
+    baseline_rewards_early: List[float]
 ) -> Tuple[float, float, float]:
     """
     Mide la ventaja inicial del curriculum learning (Jumpstart).
@@ -66,21 +65,17 @@ def compute_jumpstart(
     Returns:
         Tuple de (diferencia_absoluta, diferencia_porcentual, curriculum_mean)
     """
-    n = min(n_episodes, len(curriculum_rewards_early), len(baseline_rewards_early))
     
-    if n == 0:
-        return 0.0, 0.0, 0.0
-    
-    curr_mean = np.mean(curriculum_rewards_early[:n])
-    base_mean = np.mean(baseline_rewards_early[:n])
+    curr_mean = np.mean(curriculum_rewards_early)
+    base_mean = np.mean(baseline_rewards_early)
     
     diff_absolute = curr_mean - base_mean
     
     if base_mean == 0:
-        diff_percent = float('inf') if curr_mean > 0 else 0.0
+        diff_percent = float('inf') if curr_mean != 0 else 0.0
     else:
         diff_percent = (diff_absolute / abs(base_mean)) * 100
-    
+
     return diff_absolute, diff_percent, curr_mean
 
 
@@ -259,14 +254,8 @@ def generate_metrics_report(
     report["auc"] = compute_area_under_curve(rewards, timesteps)
     
     # Jumpstart (si hay baseline)
-    if baseline_rewards is not None and len(baseline_rewards) > 0:
-        diff_abs, diff_pct, _ = compute_jumpstart(
-            rewards.tolist(),
-            baseline_rewards.tolist(),
-            n_episodes=min(10, len(rewards))
-        )
-        report["jumpstart_absolute"] = diff_abs
-        report["jumpstart_percent"] = diff_pct
+    report["jumpstart_absolute"] = None
+    report["jumpstart_percent"] = None
     
     return report
 

@@ -151,6 +151,7 @@ def plot_time_to_threshold(
 ):
     """
     Genera gráfico de barras de Time to Threshold.
+    Muestra DOS versiones: Global (desde inicio) y Desde Fase Final.
     
     Args:
         experiments: Dict con datos de experimentos
@@ -160,12 +161,14 @@ def plot_time_to_threshold(
     if thresholds is None:
         thresholds = [15.0, 30.0, 45.0]  # 25%, 50%, 75% de 60 ladrillos
     
-    fig, ax = plt.subplots(figsize=FIGSIZE)
+    # Crear figura con 2 subplots
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
     
     exp_names = list(experiments.keys())
     x = np.arange(len(thresholds))
     width = 0.15
     
+    # ===== SUBPLOT 1: TTT GLOBAL (desde timestep 0) =====
     for idx, name in enumerate(exp_names):
         data = experiments[name]
         rewards = data["rewards"]
@@ -174,26 +177,75 @@ def plot_time_to_threshold(
         ttts = []
         for thresh in thresholds:
             ttt = compute_time_to_threshold(rewards, timesteps, thresh)
-            # Convertir a miles para visualizar
             ttts.append(ttt / 1000 if ttt != -1 else 0)
         
         offset = (idx - len(exp_names) / 2) * width + width / 2
         label = name.replace("_", " ").title()
-        bars = ax.bar(x + offset, ttts, width, label=label, color=COLORS[idx % len(COLORS)])
+        bars = ax1.bar(x + offset, ttts, width, label=label, color=COLORS[idx % len(COLORS)])
         
-        # Marcar con X si no alcanzó el umbral
         for j, ttt in enumerate(ttts):
             if ttt == 0:
-                ax.text(x[j] + offset, 10, '✗', ha='center', va='bottom', 
-                       fontsize=12, color='red')
+                ax1.text(x[j] + offset, 10, '✗', ha='center', va='bottom', 
+                        fontsize=12, color='red')
     
-    ax.set_xlabel("Umbral de Reward", fontsize=12)
-    ax.set_ylabel("Timesteps (×1000)", fontsize=12)
-    ax.set_title("Time to Threshold: Comparativa", fontsize=14)
-    ax.set_xticks(x)
-    ax.set_xticklabels([f"R ≥ {t:.0f}" for t in thresholds])
-    ax.legend(loc="upper left", fontsize=9)
-    ax.grid(True, axis='y', alpha=0.3)
+    ax1.set_xlabel("Umbral de Reward", fontsize=12)
+    ax1.set_ylabel("Timesteps (×1000)", fontsize=12)
+    ax1.set_title("TTT Global (desde inicio)", fontsize=14)
+    ax1.set_xticks(x)
+    ax1.set_xticklabels([f"R ≥ {t:.0f}" for t in thresholds])
+    ax1.legend(loc="upper left", fontsize=9)
+    ax1.grid(True, axis='y', alpha=0.3)
+    
+    # ===== SUBPLOT 2: TTT DESDE FASE FINAL =====
+    for idx, name in enumerate(exp_names):
+        data = experiments[name]
+        rewards = data["rewards"]
+        timesteps = data["timesteps"]
+        phase_transitions = data.get("phase_transitions", [])
+        
+        # Determinar índice de inicio de fase final (igual que en jumpstart)
+        if phase_transitions:
+            last_transition = phase_transitions[-1]
+            transition_timestep = int(last_transition.get("timestep", 0))
+            
+            if transition_timestep == 0:
+                # BC Pretrain: empieza en índice 0
+                last_phase_idx = 0
+            else:
+                # Curriculum normal: usar el timestep de la última transición
+                last_phase_idx = int((transition_timestep / 10000) + 2)  # +2 por las evaluaciones duplicadas
+        else:
+            # Si no hay transiciones, empezar desde 0
+            last_phase_idx = 0
+        
+        # Filtrar datos desde la fase final usando índices
+        phase_rewards = rewards[last_phase_idx:]
+        phase_timesteps = timesteps[last_phase_idx:] - timesteps[last_phase_idx]  # Relativos a inicio de fase
+        
+        ttts_phase = []
+        for thresh in thresholds:
+            if len(phase_rewards) > 0:
+                ttt = compute_time_to_threshold(phase_rewards, phase_timesteps, thresh)
+                ttts_phase.append(ttt / 1000 if ttt != -1 else 0)
+            else:
+                ttts_phase.append(0)
+        
+        offset = (idx - len(exp_names) / 2) * width + width / 2
+        label = name.replace("_", " ").title()
+        bars = ax2.bar(x + offset, ttts_phase, width, label=label, color=COLORS[idx % len(COLORS)])
+        
+        for j, ttt in enumerate(ttts_phase):
+            if ttt == 0:
+                ax2.text(x[j] + offset, 10, '✗', ha='center', va='bottom', 
+                        fontsize=12, color='red')
+    
+    ax2.set_xlabel("Umbral de Reward", fontsize=12)
+    ax2.set_ylabel("Timesteps (×1000)", fontsize=12)
+    ax2.set_title("TTT Desde Fase Final (transferencia)", fontsize=14)
+    ax2.set_xticks(x)
+    ax2.set_xticklabels([f"R ≥ {t:.0f}" for t in thresholds])
+    ax2.legend(loc="upper left", fontsize=9)
+    ax2.grid(True, axis='y', alpha=0.3)
     
     plt.tight_layout()
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -289,20 +341,23 @@ def plot_jumpstart(
         if len(rewards) == 0:
             continue
         
-        # Para curriculum: encontrar índice de inicio de la última fase
         if phase_transitions:
             # La última transición marca el inicio de la fase final
-            last_phase_idx = phase_transitions[-1] if phase_transitions else 0
-            # Tomar los primeros n_early episodios desde ese punto
-            curriculum_rewards_early = rewards[last_phase_idx:last_phase_idx + n_early]
+            last_transition = phase_transitions[-1]
+            transition_timestep = int(last_transition.get("timestep", 0))
+            
+            if transition_timestep == 0:
+                curriculum_rewards_early = rewards[:n_early]
+            else:
+                # Curriculum normal: usar el timestep de la última transición
+                last_phase_idx = int((transition_timestep / 10000) + 2)  # +2 por las evaluaciones duplicadas
+                curriculum_rewards_early = rewards[last_phase_idx:last_phase_idx + n_early]
         else:
             # Si no hay transiciones (ej: baseline), usar desde el inicio
             curriculum_rewards_early = rewards[:n_early]
-        
         _, jump_pct, _ = compute_jumpstart(
             curriculum_rewards_early.tolist(),
-            baseline_rewards[:n_early].tolist(),
-            n_episodes=n_early,
+            baseline_rewards[:n_early].tolist()
         )
         
         names.append(name.replace("_", " ").title())

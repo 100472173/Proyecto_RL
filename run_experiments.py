@@ -3,6 +3,8 @@ Script unificado para ejecutar experimentos de curriculum learning.
 
 Permite ejecutar cualquier experimento definido en experiment_configs.py
 y recolecta métricas automáticamente para comparación.
+
+Soporta tanto experimentos de curriculum clásico como Teacher-Student.
 """
 import os
 import json
@@ -23,9 +25,11 @@ from experiment_configs import (
     get_all_experiments,
     DQN_PARAMS,
     STANDARD_ENV,
+    TOTAL_TIMESTEPS,
     print_experiment_summary,
 )
 from metrics import generate_metrics_report
+import gymnasium as gym
 
 
 def make_env(render_mode=None, **kwargs):
@@ -44,6 +48,119 @@ def build_vec_env(env_kwargs, n_stack=4):
     return env
 
 
+def run_bandit_curriculum_experiment(
+    config: Dict,
+    output_dir: str = "results",
+    eval_freq: int = 10_000,
+    n_eval_episodes: int = 5,
+    seed: Optional[int] = None,
+    verbose: int = 1,
+) -> Dict:
+    """
+    Ejecuta un experimento de Bandit Curriculum Learning.
+    
+    Args:
+        config: Configuración del experimento
+        output_dir: Directorio base para resultados
+        eval_freq: Frecuencia de evaluación
+        n_eval_episodes: Episodios por evaluación
+        seed: Semilla para reproducibilidad
+        verbose: Nivel de verbosidad
+        
+    Returns:
+        Diccionario con resultados y métricas
+    """
+    from train_bandit import train_with_bandit_curriculum
+    
+    experiment_name = config["name"]
+    bandit_config = config.get("bandit_config", {})
+    
+    exp_dir = os.path.join(output_dir, experiment_name)
+    
+    result = train_with_bandit_curriculum(
+        total_timesteps=config.get("total_timesteps", TOTAL_TIMESTEPS),
+        output_dir=exp_dir,
+        temperature=bandit_config.get("temperature", 0.5),
+        window_size=bandit_config.get("window_size", 20),
+        eval_freq=config.get("eval_freq", eval_freq),
+        n_eval_episodes=config.get("n_eval_episodes", n_eval_episodes),
+        seed=seed if seed is not None else 42,
+        verbose=verbose,
+    )
+    
+    return result
+
+
+def run_teacher_student_experiment(
+    config: Dict,
+    output_dir: str = "results",
+    eval_freq: int = 10_000,
+    n_eval_episodes: int = 10,
+    save_checkpoints: bool = True,
+    checkpoint_freq: int = 100_000,
+    seed: Optional[int] = None,
+    verbose: int = 1,
+) -> Dict:
+    """
+    Ejecuta un experimento Teacher-Student.
+    
+    Args:
+        config: Configuración del experimento (de experiment_configs.py)
+        output_dir: Directorio base para resultados
+        eval_freq: Frecuencia de evaluación
+        n_eval_episodes: Episodios por evaluación
+        save_checkpoints: Si guardar checkpoints intermedios
+        checkpoint_freq: Frecuencia de checkpoints
+        seed: Semilla para reproducibilidad
+        verbose: Nivel de verbosidad
+        
+    Returns:
+        Diccionario con resultados y métricas
+    """
+    from train_teacher_student import (
+        train_teacher_student,
+        train_with_behavior_cloning_pretrain,
+    )
+    
+    experiment_name = config["name"]
+    guidance_mode = config.get("guidance_mode", "action_cloning")
+    teacher_path = config.get("teacher_path", "models/entrega_presentacion/dqn_breakout_final.zip")
+    
+    if guidance_mode == "bc_pretrain":
+        # Usar variante con behavior cloning pretrain
+        result = train_with_behavior_cloning_pretrain(
+            teacher_path=teacher_path,
+            pretrain_timesteps=config.get("pretrain_timesteps", 200_000),
+            total_timesteps=config.get("total_timesteps", TOTAL_TIMESTEPS),
+            output_dir=output_dir,
+            experiment_name=experiment_name,
+            eval_freq=eval_freq,
+            n_eval_episodes=n_eval_episodes,
+            seed=seed,
+            verbose=verbose,
+        )
+    else:
+        # Usar entrenamiento teacher-student estándar
+        result = train_teacher_student(
+            teacher_path=teacher_path,
+            guidance_mode=guidance_mode,
+            total_timesteps=config.get("total_timesteps", TOTAL_TIMESTEPS),
+            initial_teacher_prob=config.get("initial_teacher_prob", 0.9),
+            final_teacher_prob=config.get("final_teacher_prob", 0.1),
+            decay_fraction=config.get("decay_fraction", 0.7),
+            output_dir=output_dir,
+            experiment_name=experiment_name,
+            eval_freq=eval_freq,
+            n_eval_episodes=n_eval_episodes,
+            save_checkpoints=save_checkpoints,
+            checkpoint_freq=checkpoint_freq,
+            seed=seed,
+            verbose=verbose,
+        )
+    
+    return result
+
+
 def run_experiment(
     experiment_name: str,
     output_dir: str = "results",
@@ -56,6 +173,9 @@ def run_experiment(
 ) -> Dict:
     """
     Ejecuta un experimento completo.
+    
+    Detecta automáticamente si es un experimento Teacher-Student
+    y usa la función apropiada.
     
     Args:
         experiment_name: Nombre del experimento (de experiment_configs.py)
@@ -72,6 +192,30 @@ def run_experiment(
     """
     # Obtener configuración
     config = get_experiment(experiment_name)
+    
+    # Verificar si es un experimento Teacher-Student
+    if config.get("is_teacher_student", False):
+        return run_teacher_student_experiment(
+            config=config,
+            output_dir=output_dir,
+            eval_freq=eval_freq,
+            n_eval_episodes=n_eval_episodes,
+            save_checkpoints=save_checkpoints,
+            checkpoint_freq=checkpoint_freq,
+            seed=seed,
+            verbose=verbose,
+        )
+    
+    # Verificar si es un experimento Bandit Curriculum
+    if config.get("is_bandit_curriculum", False):
+        return run_bandit_curriculum_experiment(
+            config=config,
+            output_dir=output_dir,
+            eval_freq=eval_freq,
+            n_eval_episodes=n_eval_episodes,
+            seed=seed,
+            verbose=verbose,
+        )
     
     # Crear directorios
     exp_dir = os.path.join(output_dir, experiment_name)

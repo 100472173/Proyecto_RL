@@ -1,5 +1,19 @@
+PASOS PARA EL TEACHER STUDENT:
+  1. Cuando termines el entrenamiento normal, copiate a algun lado las carpetas results y figures para no perderlas
+  2. Abres el .zip con el proyecto que tiene lo del teacher student
+  3. Copias la carpeta results al proyecto
+  4. Cambias la DEFAULT_TEACHER_PATH de experiment_configs.py al modelo baseline que has entrenado antes y que
+     deberia estar en algun sitio de la carpeta results
+  5. Ejecutar el teacher-student con: python run_experiments.py -e teacher_student_bc_pretrain
+  6. Ejecutar un nuevo analisis de resultados con: python analyze_results.py -r results -o figures 
+
 EJECUTAR EL ENTRENAMIENTO: python run_experiments.py
 EJECUTAR EL ANALISIS DE RESULTADOS: python analyze_results.py -r results -o figures 
+
+# Usar un teacher diferente
+python train_teacher_student.py \ 
+  --mode bc_pretrain \
+  --teacher models/entrega_presentacion/dqn_curriculum_final_v2.zip
 
 
 Cosas del codigo:
