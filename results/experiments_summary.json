@@ -1,0 +1,17 @@
+{
+  "start_time": "2025-12-31T10:36:02.023760",
+  "end_time": "2025-12-31T15:15:52.293275",
+  "duration_seconds": 16790.269515,
+  "experiments": {
+    "curriculum_paddle_width": {
+      "final_reward_mean": 55.3,
+      "final_reward_std": 21.10473880435387,
+      "error": null
+    },
+    "curriculum_layout": {
+      "final_reward_mean": 46.6,
+      "final_reward_std": 15.46091847207015,
+      "error": null
+    }
+  }
+}

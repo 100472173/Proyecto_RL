@@ -1,0 +1,18 @@
+{
+  "experiment": "curriculum_combined",
+  "total_timesteps": 1500000,
+  "n_evaluations": 154,
+  "asymptotic_mean": 42.86666666666666,
+  "asymptotic_std": 15.059113150809674,
+  "time_to_thresholds": {
+    "threshold_15.0": 430000,
+    "threshold_30.0": 490000,
+    "threshold_45.0": 600000
+  },
+  "auc": 30.768456375838923,
+  "stability": 236.11928344827587,
+  "jumpstart_absolute": null,
+  "jumpstart_percent": null,
+  "final_reward_mean": 55.4,
+  "final_reward_std": 20.958053344716916
+}

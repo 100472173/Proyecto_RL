@@ -1,0 +1,18 @@
+{
+  "experiment": "curriculum_ball_speed",
+  "total_timesteps": 1500000,
+  "n_evaluations": 154,
+  "asymptotic_mean": 47.25333333333334,
+  "asymptotic_std": 17.10944638366641,
+  "time_to_thresholds": {
+    "threshold_15.0": 180000,
+    "threshold_30.0": 330000,
+    "threshold_45.0": 370000
+  },
+  "auc": 39.574832214765095,
+  "stability": 213.75623310344827,
+  "jumpstart_absolute": null,
+  "jumpstart_percent": null,
+  "final_reward_mean": 56.95,
+  "final_reward_std": 17.301661769899443
+}

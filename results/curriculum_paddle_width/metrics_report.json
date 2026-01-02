@@ -1,0 +1,18 @@
+{
+  "experiment": "curriculum_paddle_width",
+  "total_timesteps": 1500000,
+  "n_evaluations": 154,
+  "asymptotic_mean": 45.323333333333316,
+  "asymptotic_std": 17.982337321815415,
+  "time_to_thresholds": {
+    "threshold_15.0": 150000,
+    "threshold_30.0": 290000,
+    "threshold_45.0": 590000
+  },
+  "auc": 33.18120805369128,
+  "stability": 274.71269310344826,
+  "jumpstart_absolute": null,
+  "jumpstart_percent": null,
+  "final_reward_mean": 55.3,
+  "final_reward_std": 21.10473880435387
+}

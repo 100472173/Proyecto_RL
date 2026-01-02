@@ -1,0 +1,16 @@
+\begin{table}[htbp]
+\centering
+\caption{Comparación de métodos de curriculum learning}
+\label{tab:results}
+\begin{tabular}{lccccccc}
+\toprule
+Método & Asym. Mean & Asym. Std & AUC & Stability & TTT$_{15}$ & TTT$_{30}$ & TTT$_{45}$ \\
+\midrule
+Curriculum Ball Speed & 47.3 & 17.1 & 39.6 & 213.76 & 180k & 330k & 370k \\
+Curriculum Combined & 42.9 & 15.1 & 30.8 & 236.12 & 430k & 490k & 600k \\
+Curriculum Paddle Width & 45.3 & 18.0 & 33.2 & 274.71 & 150k & 290k & 590k \\
+Baseline & 40.5 & 20.9 & 39.6 & 288.94 & 140k & 170k & 320k \\
+Curriculum Layout & 38.1 & 19.6 & 17.6 & 154.18 & 670k & 750k & 1040k \\
+\bottomrule
+\end{tabular}
+\end{table}

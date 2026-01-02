@@ -1,0 +1,19 @@
+{
+  "name": "baseline",
+  "description": "Sin curriculum learning - entrenamiento directo",
+  "total_timesteps": 1500000,
+  "phases": [
+    {
+      "name": "standard",
+      "timesteps": 1500000,
+      "env_kwargs": {
+        "ball_speed": 1.0,
+        "paddle_width": 1.0,
+        "brick_rows": 6,
+        "brick_cols": 10,
+        "max_steps": 7000,
+        "reward_shaping": false
+      }
+    }
+  ]
+}
