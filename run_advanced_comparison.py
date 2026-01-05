@@ -27,8 +27,7 @@ class ShapedBreakoutEnv(BreakoutEnv):
     Extiende BreakoutEnv para añadir Reward Shaping avanzado.
     """
     def __init__(self, use_shaping: bool = True, **kwargs):
-        # CORRECCIÓN: Eliminamos 'reward_shaping' de kwargs si existe
-        # para evitar el conflicto de "multiple values for keyword argument".
+
         kwargs.pop('reward_shaping', None)
         
         # Forzamos reward_shaping=False en el padre para manejarlo nosotros manualmente
@@ -38,7 +37,6 @@ class ShapedBreakoutEnv(BreakoutEnv):
         self.last_ball_y = 0.0
         self.last_potential = 0.0
         
-        # Inicialización de seguridad para evitar errores en el primer reset
         self.paddle_x = 0
         self.ball_x = 0
         self.ball_vy = 0
@@ -49,45 +47,36 @@ class ShapedBreakoutEnv(BreakoutEnv):
         self.last_ball_y = self.ball_y
         self.last_ball_vy = self.ball_vy
         
-        # Calcular potencial inicial: -Distancia
         dist = abs((self.paddle_x + self.paddle_width / 2) - self.ball_x)
         self.last_potential = -dist
         return obs, info
 
     def step(self, action):
-        # 1. Ejecutar paso físico original
+
         obs, reward, terminated, truncated, info = super().step(action)
         
         if not self.use_shaping:
             return obs, reward, terminated, truncated, info
 
-        # 2. Calcular componentes de Shaping
         shaping_reward = 0.0
-        
-        # A) Alignment (Potential-based Shaping)
+
         current_dist = abs((self.paddle_x + self.paddle_width / 2) - self.ball_x)
         current_potential = -current_dist
         gamma = 0.99
-        
-        # Solo aplicamos shaping de alineación si la pelota está bajando
+
         if self.ball_vy > 0:
             alignment_shaping = (gamma * current_potential - self.last_potential)
             shaping_reward += alignment_shaping * 0.1
         
         self.last_potential = current_potential
 
-        # B) Return Bonus & Aiming
-        # Detectamos si la velocidad vertical cambió de positiva (bajando) a negativa (subiendo)
-        # y si está cerca de la altura de la pala.
         if self.ball_vy < 0 and self.last_ball_vy > 0 and self.ball_y > self.paddle_y - 10:
              shaping_reward += 1.0  # Bonus por devolver la bola
              
-             # C) Aiming (Edge Bonus)
              hit_offset = (self.ball_x - (self.paddle_x + self.paddle_width/2)) / (self.paddle_width/2)
              if abs(hit_offset) > 0.5:
                  shaping_reward += 0.5  # Incentivar tiros angulados
 
-        # Actualizar estado previo
         self.last_ball_y = self.ball_y
         self.last_ball_vy = self.ball_vy
 
@@ -96,7 +85,6 @@ class ShapedBreakoutEnv(BreakoutEnv):
         
         return obs, total_reward, terminated, truncated, info
 
-# Wrapper para usar nuestra env class en el pipeline existente
 def make_shaped_env(use_shaping=False, **kwargs):
     def _init():
         env = ShapedBreakoutEnv(use_shaping=use_shaping, **kwargs)
@@ -109,37 +97,40 @@ def build_shaped_vec_env(env_kwargs, use_shaping=False):
     env = VecFrameStack(env, n_stack=4)
     return env
 
-# =============================================================================
-# 2. DEFINICIÓN DE EXPERIMENTOS
-# =============================================================================
-
-TOTAL_TIMESTEPS = 500_000  # Reducido para ejemplo rápido, ajustar según necesidad
+TOTAL_TIMESTEPS = 1_500_000
 
 def get_experiment_configs():
     """Genera las 4 configuraciones requeridas."""
-    
-    # --- Configuración Base (Environment Parameters) ---
-    # Curriculum Combinado: Fácil -> Medio -> Difícil
+
+    # Curriculum Combinado
     combined_phases = [
         {
             "name": "phase1_easy",
-            "timesteps": int(TOTAL_TIMESTEPS * 0.2),
+            "timesteps": 200_000,
             "env_kwargs": {
-                "ball_speed": 0.6, "paddle_width": 1.5, 
-                "brick_rows": 3, "brick_cols": 8, "max_steps": 5000
+                "ball_speed": 0.75, "paddle_width": 1.3, 
+                "brick_rows": 4, "brick_cols": 8, "max_steps": 4_000
             }
         },
         {
             "name": "phase2_medium",
-            "timesteps": int(TOTAL_TIMESTEPS * 0.3),
+            "timesteps": 300_000,
             "env_kwargs": {
-                "ball_speed": 0.8, "paddle_width": 1.2, 
-                "brick_rows": 4, "brick_cols": 10, "max_steps": 6000
+                "ball_speed": 0.85, "paddle_width": 1.2, 
+                "brick_rows": 5, "brick_cols": 9, "max_steps": 5_000
             }
         },
         {
-            "name": "phase3_standard",
-            "timesteps": int(TOTAL_TIMESTEPS * 0.5),
+            "name": "phase3_almostStandard",
+            "timesteps": 400_000,
+            "env_kwargs": {
+                "ball_speed": 0.95, "paddle_width": 1.1, 
+                "brick_rows": 6, "brick_cols": 10, "max_steps": 6_000
+            }
+        },
+        {
+            "name": "phase4_standard",
+            "timesteps": 600_000,
             "env_kwargs": STANDARD_ENV.copy()
         }
     ]
@@ -152,29 +143,29 @@ def get_experiment_configs():
 
     experiments = {}
 
-    # 1. Baseline Sin Shaping
-    experiments["baseline_no_shape"] = {
-        "description": "Baseline clásico (Standard Env, No Shaping)",
+    # Baseline
+    experiments["baseline_no_shaping"] = {
+        "description": "Baseline clásico",
         "phases": baseline_phases,
         "use_shaping": False
     }
 
-    # 2. Baseline Con Shaping
-    experiments["baseline_with_shape"] = {
-        "description": "Baseline con Reward Shaping (Tracking+Return)",
+    # Baseline con  Reward Shaping
+    experiments["baseline_with_shaping"] = {
+        "description": "Baseline con Reward Shaping",
         "phases": baseline_phases,
         "use_shaping": True
     }
 
-    # 3. Curriculum Sin Shaping
-    experiments["curriculum_no_shape"] = {
-        "description": "Curriculum Combinado (Speed+Width+Bricks), No Shaping",
+    # Curriculum
+    experiments["curriculum_no_shaping"] = {
+        "description": "Curriculum Combinado clásico",
         "phases": combined_phases,
         "use_shaping": False
     }
 
-    # 4. Curriculum Con Shaping
-    experiments["curriculum_with_shape"] = {
+    # Curriculum con Reward Shaping
+    experiments["curriculum_with_shaping"] = {
         "description": "Curriculum Combinado + Reward Shaping",
         "phases": combined_phases,
         "use_shaping": True
@@ -182,15 +173,9 @@ def get_experiment_configs():
 
     return experiments
 
-# =============================================================================
-# 3. EJECUCIÓN Y EVALUACIÓN JUSTA
-# =============================================================================
 
 class FairEvalCallback(BaseCallback):
-    """
-    Callback que evalúa SIEMPRE en el entorno estándar SIN shaping.
-    Esto asegura que la métrica de comparación sea justa para todos.
-    """
+
     def __init__(self, eval_env, eval_freq=10000):
         super().__init__(verbose=1)
         self.eval_env = eval_env
@@ -208,7 +193,7 @@ class FairEvalCallback(BaseCallback):
                 "std_reward": std_reward
             })
             if self.verbose > 0:
-                print(f"Fair Eval @ {self.num_timesteps}: {mean_reward:.2f} +/- {std_reward:.2f}")
+                print(f"Evaluacion {self.num_timesteps} pasos: {mean_reward:.2f} +/- {std_reward:.2f}")
         return True
 
 def run_comparison():
@@ -218,17 +203,15 @@ def run_comparison():
     configs = get_experiment_configs()
     results = {}
 
-    # Entorno de Evaluación Justa: SIEMPRE Estándar y SIN Shaping
-    # Así comparamos manzanas con manzanas (rendimiento real en el juego)
     fair_eval_env = build_shaped_vec_env(STANDARD_ENV, use_shaping=False)
 
     print(f"{'='*80}")
     print(f"INICIANDO COMPARATIVA DE 4 MODELOS")
-    print(f"Métrica de Evaluación: Reward Medio en Entorno Estándar (Sin Shaping)")
+    print(f"Métrica de Evaluación: Reward medio en entorno estándar")
     print(f"{'='*80}\n")
 
     for exp_name, config in configs.items():
-        print(f"\n---> Ejecutando: {exp_name.upper()}")
+        print(f"\n     Ejecutando: {exp_name.upper()}")
         print(f"     Desc: {config['description']}")
         
         # Setup del modelo
@@ -238,12 +221,11 @@ def run_comparison():
         total_steps = 0
         use_shaping = config["use_shaping"]
 
-        # Bucle de fases (para curriculum o baseline)
+        # Bucle de fases
         for phase in config["phases"]:
             phase_env_kwargs = phase["env_kwargs"]
             timesteps = phase["timesteps"]
             
-            # Construir entorno de entrenamiento (con o sin shaping según config)
             train_env = build_shaped_vec_env(phase_env_kwargs, use_shaping=use_shaping)
             
             if model is None:
@@ -268,7 +250,7 @@ def run_comparison():
         # Guardar resultados
         results[exp_name] = eval_callback.eval_logs
         model.save(os.path.join(output_dir, f"model_{exp_name}"))
-        print(f"✓ {exp_name} finalizado. Resultado final (Fair): {eval_callback.eval_logs[-1]['mean_reward']:.2f}")
+        print(f"{exp_name} finalizado. Resultado final: {eval_callback.eval_logs[-1]['mean_reward']:.2f}")
 
     # Generar Reporte Final
     print("\n" + "="*80)
