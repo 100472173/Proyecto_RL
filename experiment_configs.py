@@ -238,22 +238,22 @@ def get_curriculum_layout() -> Dict:
 
 def get_curriculum_combined() -> Dict:
     """
-    Curriculum combinado mejorado: ajusta velocidad, paddle y ladrillos simultáneamente.
+    Curriculum combinado: ajusta velocidad y paddle (SIN modificar layout de ladrillos).
     Transiciones más suaves y más tiempo en fase final.
     """
     return {
         "name": "curriculum_combined",
-        "description": "Progresión combinada mejorada (4 fases con transiciones suaves)",
+        "description": "Progresión combinada: velocidad + paddle (layout fijo 6x10)",
         "total_timesteps": TOTAL_TIMESTEPS,
         "phases": [
             {
                 "name": "phase1_easy",
                 "timesteps": 200_000,  # 13%
                 "env_kwargs": {
-                    "ball_speed": 0.75,  # Menos trivial que 0.6
-                    "paddle_width": 1.3,  # Menos trivial que 1.5
-                    "brick_rows": 4,      # Más ladrillos que antes
-                    "brick_cols": 8,
+                    "ball_speed": 0.75,
+                    "paddle_width": 1.3,
+                    "brick_rows": 6,      # Layout estándar fijo
+                    "brick_cols": 10,
                     "max_steps": 4_000,
                     "reward_shaping": False,
                 },
@@ -264,8 +264,8 @@ def get_curriculum_combined() -> Dict:
                 "env_kwargs": {
                     "ball_speed": 0.85,
                     "paddle_width": 1.2,
-                    "brick_rows": 5,
-                    "brick_cols": 9,
+                    "brick_rows": 6,      # Layout estándar fijo
+                    "brick_cols": 10,
                     "max_steps": 5_000,
                     "reward_shaping": False,
                 },
@@ -276,8 +276,126 @@ def get_curriculum_combined() -> Dict:
                 "env_kwargs": {
                     "ball_speed": 0.95,
                     "paddle_width": 1.1,
-                    "brick_rows": 6,
+                    "brick_rows": 6,      # Layout estándar fijo
                     "brick_cols": 10,
+                    "max_steps": 6_000,
+                    "reward_shaping": False,
+                },
+            },
+            {
+                "name": "phase4_standard",
+                "timesteps": 600_000,  # 40% en tarea final
+                "env_kwargs": STANDARD_ENV.copy(),
+            },
+        ],
+    }
+
+
+def get_curriculum_layout_v2() -> Dict:
+    """
+    Curriculum por disposición de ladrillos: diferentes patrones espaciales.
+    Progresión libre que experimenta con cantidad y disposición de ladrillos.
+    Permite explorar si patrones espaciales ayudan al aprendizaje.
+    """
+    return {
+        "name": "curriculum_layout_v2",
+        "description": "Progresión experimental por patrones espaciales de ladrillos",
+        "total_timesteps": TOTAL_TIMESTEPS,
+        "phases": [
+            {
+                "name": "phase1_sparse_columns",
+                "timesteps": 200_000,  # 13%
+                "env_kwargs": {
+                    "ball_speed": 1.0,
+                    "paddle_width": 1.0,
+                    "brick_rows": 3,
+                    "brick_cols": 6,
+                    "brick_layout": "columns",  # Columnas espaciadas (18 ladrillos)
+                    "max_steps": 4_000,
+                    "reward_shaping": False,
+                },
+            },
+            {
+                "name": "phase2_checkerboard",
+                "timesteps": 300_000,  # 20%
+                "env_kwargs": {
+                    "ball_speed": 1.0,
+                    "paddle_width": 1.0,
+                    "brick_rows": 4,
+                    "brick_cols": 8,
+                    "brick_layout": "checkerboard",  # Patrón ajedrez (~16 ladrillos)
+                    "max_steps": 5_000,
+                    "reward_shaping": False,
+                },
+            },
+            {
+                "name": "phase3_clusters",
+                "timesteps": 400_000,  # 27%
+                "env_kwargs": {
+                    "ball_speed": 1.0,
+                    "paddle_width": 1.0,
+                    "brick_rows": 5,
+                    "brick_cols": 9,
+                    "brick_layout": "clusters",  # Grupos de ladrillos (~30 ladrillos)
+                    "max_steps": 6_000,
+                    "reward_shaping": False,
+                },
+            },
+            {
+                "name": "phase4_standard",
+                "timesteps": 600_000,  # 40% en tarea final
+                "env_kwargs": STANDARD_ENV.copy(),  # 60 ladrillos densos
+            },
+        ],
+    }
+
+
+def get_curriculum_combined_v2() -> Dict:
+    """
+    Curriculum combinado versión 2: velocidad + paddle + patrones espaciales.
+    Combina la progresión de dificultad mecánica (velocidad y paddle)
+    con la progresión de patrones espaciales de ladrillos.
+    """
+    return {
+        "name": "curriculum_combined_v2",
+        "description": "Progresión combinada v2: velocidad + paddle + patrones espaciales",
+        "total_timesteps": TOTAL_TIMESTEPS,
+        "phases": [
+            {
+                "name": "phase1_easy_columns",
+                "timesteps": 200_000,  # 13%
+                "env_kwargs": {
+                    "ball_speed": 0.75,
+                    "paddle_width": 1.3,
+                    "brick_rows": 3,
+                    "brick_cols": 6,
+                    "brick_layout": "columns",  # Columnas espaciadas
+                    "max_steps": 4_000,
+                    "reward_shaping": False,
+                },
+            },
+            {
+                "name": "phase2_medium_checkerboard",
+                "timesteps": 300_000,  # 20%
+                "env_kwargs": {
+                    "ball_speed": 0.85,
+                    "paddle_width": 1.2,
+                    "brick_rows": 4,
+                    "brick_cols": 8,
+                    "brick_layout": "checkerboard",  # Patrón ajedrez
+                    "max_steps": 5_000,
+                    "reward_shaping": False,
+                },
+            },
+            {
+                "name": "phase3_almost_standard_clusters",
+                "timesteps": 400_000,  # 27%
+                "env_kwargs": {
+                    "ball_speed": 0.95,
+                    "paddle_width": 1.1,
+                    "brick_rows": 5,
+                    "brick_cols": 9,
+                    "brick_layout": "clusters",  # Grupos de ladrillos
                     "max_steps": 6_000,
                     "reward_shaping": False,
                 },
@@ -471,10 +589,12 @@ EXPERIMENTS = {
     # "curriculum_ball_speed": get_curriculum_ball_speed,
     # "curriculum_paddle_width": get_curriculum_paddle_width,
     # "curriculum_layout": get_curriculum_layout,
-    # "curriculum_combined": get_curriculum_combined,
+    "curriculum_layout_v2": get_curriculum_layout_v2,
+    "curriculum_combined": get_curriculum_combined,
+    "curriculum_combined_v2": get_curriculum_combined_v2,
     # Teacher-Student experiments
-    "teacher_student_action_cloning": get_teacher_student_action_cloning,
-    "teacher_student_soft_guidance": get_teacher_student_soft_guidance,
+    # "teacher_student_action_cloning": get_teacher_student_action_cloning,
+    # "teacher_student_soft_guidance": get_teacher_student_soft_guidance,
     "teacher_student_adaptive": get_teacher_student_adaptive_takeover,
     # "teacher_student_bc_pretrain": get_teacher_student_bc_pretrain,
     # Bandit Curriculum (Automatic Curriculum Learning)

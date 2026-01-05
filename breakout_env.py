@@ -18,6 +18,11 @@ class BreakoutEnv(gym.Env):
         - brick_rows: número de filas de ladrillos
         - brick_cols: número de columnas de ladrillos
         - max_steps: máximo de pasos por episodio
+        - brick_layout: patrón espacial de ladrillos
+            * "dense": todos los ladrillos (denso estándar)
+            * "columns": columnas espaciadas (alternadas)
+            * "checkerboard": patrón de ajedrez
+            * "clusters": grupos de 2x2 con espacios
     """
     
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 60}
@@ -30,7 +35,8 @@ class BreakoutEnv(gym.Env):
         brick_rows=6,
         brick_cols=10,
         max_steps=10000,
-        reward_shaping=False
+        reward_shaping=False,
+        brick_layout="dense"
     ):
         super().__init__()
         
@@ -46,6 +52,7 @@ class BreakoutEnv(gym.Env):
         self.brick_cols = brick_cols
         self.max_steps = max_steps
         self.reward_shaping = reward_shaping
+        self.brick_layout = brick_layout  # "dense", "columns", "checkerboard", "clusters"
         
         # Dimensiones base
         self.paddle_height = 4
@@ -116,21 +123,56 @@ class BreakoutEnv(gym.Env):
         return observation, info
     
     def _create_bricks(self):
-        """Crea la matriz de ladrillos."""
+        """Crea la matriz de ladrillos según el layout especificado."""
         self.bricks = []
         self.brick_width = self.screen_width // self.brick_cols
         
         for row in range(self.brick_rows):
             for col in range(self.brick_cols):
-                brick = {
-                    "x": col * self.brick_width,
-                    "y": self.brick_top_offset + row * self.brick_height,
-                    "width": self.brick_width - 2,
-                    "height": self.brick_height - 2,
-                    "alive": True,
-                    "color": self._get_brick_color(row)
-                }
-                self.bricks.append(brick)
+                # Determinar si este ladrillo debe existir según el layout
+                should_create = self._should_create_brick(row, col)
+                
+                if should_create:
+                    brick = {
+                        "x": col * self.brick_width,
+                        "y": self.brick_top_offset + row * self.brick_height,
+                        "width": self.brick_width - 2,
+                        "height": self.brick_height - 2,
+                        "alive": True,
+                        "color": self._get_brick_color(row)
+                    }
+                    self.bricks.append(brick)
+    
+    def _should_create_brick(self, row, col):
+        """Determina si se debe crear un ladrillo en esta posición según el layout."""
+        if self.brick_layout == "dense":
+            # Layout denso estándar: todos los ladrillos
+            return True
+        
+        elif self.brick_layout == "columns":
+            # Columnas espaciadas: ladrillos en columnas alternas
+            return col % 2 == 0
+        
+        elif self.brick_layout == "checkerboard":
+            # Patrón de ajedrez: ladrillos alternados
+            return (row + col) % 2 == 0
+        
+        elif self.brick_layout == "clusters":
+            # Grupos de ladrillos: clusters de 2x2 con espacios
+            # Crea grupos en posiciones específicas
+            cluster_size = 2
+            spacing = 1
+            pattern_size = cluster_size + spacing
+            
+            local_row = row % pattern_size
+            local_col = col % pattern_size
+            
+            # Solo crear ladrillos en las primeras 2 filas/columnas de cada patrón
+            return local_row < cluster_size and local_col < cluster_size
+        
+        else:
+            # Layout desconocido: usar denso por defecto
+            return True
     
     def _get_brick_color(self, row):
         """Devuelve el color del ladrillo según la fila."""
