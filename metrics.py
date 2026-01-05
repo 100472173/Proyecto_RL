@@ -253,7 +253,9 @@ def generate_metrics_report(
     # AUC
     report["auc"] = compute_area_under_curve(rewards, timesteps)
     
-    # Jumpstart (si hay baseline)
+    # Jumpstart: No se calcula aquí porque requiere información de phase_transitions
+    # Se calcula correctamente en analyze_results.py/plot_jumpstart()
+    # que compara los primeros N episodios desde la fase final vs baseline inicial
     report["jumpstart_absolute"] = None
     report["jumpstart_percent"] = None
     

@@ -1,0 +1,18 @@
+{
+  "experiment": "baseline",
+  "total_timesteps": 1500000,
+  "n_evaluations": 151,
+  "asymptotic_mean": 40.519999999999996,
+  "asymptotic_std": 20.87654824597847,
+  "time_to_thresholds": {
+    "threshold_15.0": 140000,
+    "threshold_30.0": 170000,
+    "threshold_45.0": 320000
+  },
+  "auc": 39.63120805369128,
+  "stability": 288.94213028169014,
+  "jumpstart_absolute": null,
+  "jumpstart_percent": null,
+  "final_reward_mean": 55.65,
+  "final_reward_std": 21.05059381585232
+}

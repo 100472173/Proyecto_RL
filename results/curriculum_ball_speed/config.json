@@ -1,0 +1,55 @@
+{
+  "name": "curriculum_ball_speed",
+  "description": "Progresi\u00f3n por velocidad de bola (0.75 -> 0.85 -> 0.95 -> 1.0)",
+  "total_timesteps": 1500000,
+  "phases": [
+    {
+      "name": "phase1_slow",
+      "timesteps": 200000,
+      "env_kwargs": {
+        "ball_speed": 0.75,
+        "paddle_width": 1.0,
+        "brick_rows": 6,
+        "brick_cols": 10,
+        "max_steps": 5000,
+        "reward_shaping": false
+      }
+    },
+    {
+      "name": "phase2_medium_slow",
+      "timesteps": 300000,
+      "env_kwargs": {
+        "ball_speed": 0.85,
+        "paddle_width": 1.0,
+        "brick_rows": 6,
+        "brick_cols": 10,
+        "max_steps": 6000,
+        "reward_shaping": false
+      }
+    },
+    {
+      "name": "phase3_almost_standard",
+      "timesteps": 400000,
+      "env_kwargs": {
+        "ball_speed": 0.95,
+        "paddle_width": 1.0,
+        "brick_rows": 6,
+        "brick_cols": 10,
+        "max_steps": 6500,
+        "reward_shaping": false
+      }
+    },
+    {
+      "name": "phase4_standard",
+      "timesteps": 600000,
+      "env_kwargs": {
+        "ball_speed": 1.0,
+        "paddle_width": 1.0,
+        "brick_rows": 6,
+        "brick_cols": 10,
+        "max_steps": 7000,
+        "reward_shaping": false
+      }
+    }
+  ]
+}

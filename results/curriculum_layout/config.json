@@ -1,0 +1,55 @@
+{
+  "name": "curriculum_layout",
+  "description": "Progresi\u00f3n por densidad de ladrillos (2x5 -> 3x7 -> 5x9 -> 6x10)",
+  "total_timesteps": 1500000,
+  "phases": [
+    {
+      "name": "phase1_sparse",
+      "timesteps": 200000,
+      "env_kwargs": {
+        "ball_speed": 1.0,
+        "paddle_width": 1.0,
+        "brick_rows": 2,
+        "brick_cols": 5,
+        "max_steps": 3000,
+        "reward_shaping": false
+      }
+    },
+    {
+      "name": "phase2_light",
+      "timesteps": 300000,
+      "env_kwargs": {
+        "ball_speed": 1.0,
+        "paddle_width": 1.0,
+        "brick_rows": 3,
+        "brick_cols": 7,
+        "max_steps": 4000,
+        "reward_shaping": false
+      }
+    },
+    {
+      "name": "phase3_medium",
+      "timesteps": 400000,
+      "env_kwargs": {
+        "ball_speed": 1.0,
+        "paddle_width": 1.0,
+        "brick_rows": 5,
+        "brick_cols": 9,
+        "max_steps": 6000,
+        "reward_shaping": false
+      }
+    },
+    {
+      "name": "phase4_standard",
+      "timesteps": 600000,
+      "env_kwargs": {
+        "ball_speed": 1.0,
+        "paddle_width": 1.0,
+        "brick_rows": 6,
+        "brick_cols": 10,
+        "max_steps": 7000,
+        "reward_shaping": false
+      }
+    }
+  ]
+}

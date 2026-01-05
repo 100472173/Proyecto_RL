@@ -1,0 +1,55 @@
+{
+  "name": "curriculum_paddle_width",
+  "description": "Progresi\u00f3n por tama\u00f1o de paddle (1.4 -> 1.25 -> 1.1 -> 1.0)",
+  "total_timesteps": 1500000,
+  "phases": [
+    {
+      "name": "phase1_wide",
+      "timesteps": 200000,
+      "env_kwargs": {
+        "ball_speed": 1.0,
+        "paddle_width": 1.4,
+        "brick_rows": 6,
+        "brick_cols": 10,
+        "max_steps": 5500,
+        "reward_shaping": false
+      }
+    },
+    {
+      "name": "phase2_medium_wide",
+      "timesteps": 300000,
+      "env_kwargs": {
+        "ball_speed": 1.0,
+        "paddle_width": 1.25,
+        "brick_rows": 6,
+        "brick_cols": 10,
+        "max_steps": 6000,
+        "reward_shaping": false
+      }
+    },
+    {
+      "name": "phase3_almost_standard",
+      "timesteps": 400000,
+      "env_kwargs": {
+        "ball_speed": 1.0,
+        "paddle_width": 1.1,
+        "brick_rows": 6,
+        "brick_cols": 10,
+        "max_steps": 6500,
+        "reward_shaping": false
+      }
+    },
+    {
+      "name": "phase4_standard",
+      "timesteps": 600000,
+      "env_kwargs": {
+        "ball_speed": 1.0,
+        "paddle_width": 1.0,
+        "brick_rows": 6,
+        "brick_cols": 10,
+        "max_steps": 7000,
+        "reward_shaping": false
+      }
+    }
+  ]
+}
