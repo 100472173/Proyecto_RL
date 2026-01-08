@@ -5,8 +5,8 @@ __pycache__/
 
 results/
 
-figures/
 
+**/figures/
 ideas.txt
 # C extensions
 *.so

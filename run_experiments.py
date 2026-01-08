@@ -48,49 +48,6 @@ def build_vec_env(env_kwargs, n_stack=4):
     return env
 
 
-def run_bandit_curriculum_experiment(
-    config: Dict,
-    output_dir: str = "results",
-    eval_freq: int = 10_000,
-    n_eval_episodes: int = 5,
-    seed: Optional[int] = None,
-    verbose: int = 1,
-) -> Dict:
-    """
-    Ejecuta un experimento de Bandit Curriculum Learning.
-    
-    Args:
-        config: Configuración del experimento
-        output_dir: Directorio base para resultados
-        eval_freq: Frecuencia de evaluación
-        n_eval_episodes: Episodios por evaluación
-        seed: Semilla para reproducibilidad
-        verbose: Nivel de verbosidad
-        
-    Returns:
-        Diccionario con resultados y métricas
-    """
-    from train_bandit import train_with_bandit_curriculum
-    
-    experiment_name = config["name"]
-    bandit_config = config.get("bandit_config", {})
-    
-    exp_dir = os.path.join(output_dir, experiment_name)
-    
-    result = train_with_bandit_curriculum(
-        total_timesteps=config.get("total_timesteps", TOTAL_TIMESTEPS),
-        output_dir=exp_dir,
-        temperature=bandit_config.get("temperature", 0.5),
-        window_size=bandit_config.get("window_size", 20),
-        eval_freq=config.get("eval_freq", eval_freq),
-        n_eval_episodes=config.get("n_eval_episodes", n_eval_episodes),
-        seed=seed if seed is not None else 42,
-        verbose=verbose,
-    )
-    
-    return result
-
-
 def run_teacher_student_experiment(
     config: Dict,
     output_dir: str = "results",
@@ -202,17 +159,6 @@ def run_experiment(
             n_eval_episodes=n_eval_episodes,
             save_checkpoints=save_checkpoints,
             checkpoint_freq=checkpoint_freq,
-            seed=seed,
-            verbose=verbose,
-        )
-    
-    # Verificar si es un experimento Bandit Curriculum
-    if config.get("is_bandit_curriculum", False):
-        return run_bandit_curriculum_experiment(
-            config=config,
-            output_dir=output_dir,
-            eval_freq=eval_freq,
-            n_eval_episodes=n_eval_episodes,
             seed=seed,
             verbose=verbose,
         )
@@ -351,7 +297,7 @@ def run_experiment(
         experiment_name=experiment_name,
         rewards=rewards,
         timesteps=timesteps,
-        thresholds=[15.0, 30.0, 45.0],  # 25%, 50%, 75% de 60 ladrillos
+        thresholds=[15.0, 30.0, 45.0],  # umbrales de recompensa
     )
     report["final_reward_mean"] = float(mean_reward)
     report["final_reward_std"] = float(std_reward)
