@@ -32,10 +32,42 @@ COLORS = plt.cm.tab10(np.linspace(0, 1, 10))
 FIGSIZE = (12, 6)
 DPI = 150
 
+# =============================================================================
+# CONFIGURACIÓN: EXPERIMENTOS A INCLUIR EN EL ANÁLISIS
+# =============================================================================
+# Descomentar solo los experimentos que queramos incluir en el análisis.
+EXPERIMENTS_TO_INCLUDE = [
+    # Baseline
+    "baseline",
+    # "baseline_no_shaping",
+    # "baseline_with_shaping",
+    
+    # Teacher-Student
+    # "teacher_student_adaptive",
+    # "teacher_student_action_cloning",
+    # "teacher_student_soft_guidance",
+    # "teacher_student_bc_pretrain",
+    
+    # Curriculum Learning
+    # # "curriculum_ball_speed",
+    # # "curriculum_paddle_width",
+    # # "curriculum_layout",
+    # "curriculum_layout_v2",
+    # "curriculum_combined",
+    # "curriculum_combined_v2",
+    # # "curriculum_no_shaping",
+    # # "curriculum_with_shaping",
+]
+
+# Si esta lista está vacía, se incluirán TODOS los experimentos encontrados
+# Si tiene elementos, solo se incluirán los experimentos en esta lista
+# =============================================================================
+
 
 def load_experiment_data(results_dir: str) -> Dict[str, Dict]:
     """
     Carga los datos de todos los experimentos desde el directorio de resultados.
+    Si EXPERIMENTS_TO_INCLUDE no está vacío, solo carga los experimentos en esa lista.
     
     Args:
         results_dir: Directorio raíz de resultados
@@ -48,6 +80,10 @@ def load_experiment_data(results_dir: str) -> Dict[str, Dict]:
     
     for exp_dir in results_path.iterdir():
         if not exp_dir.is_dir():
+            continue
+        
+        # Filtrar por experimentos a incluir si la lista no está vacía
+        if EXPERIMENTS_TO_INCLUDE and exp_dir.name not in EXPERIMENTS_TO_INCLUDE:
             continue
         
         metrics_file = exp_dir / "logs" / "training_metrics.json"
@@ -444,24 +480,52 @@ def generate_latex_table(
     experiments: Dict[str, Dict],
     output_path: str,
     thresholds: List[float] = None,
+    baseline_name: str = "baseline",
+    n_early: int = 5,
 ):
     """
-    Genera tabla LaTeX con todos los resultados.
+    Genera tabla LaTeX con todos los resultados incluyendo jumpstart vs baseline.
     """
     if thresholds is None:
         thresholds = [15.0, 30.0, 45.0]
+    
+    # Calcular jumpstart para cada experimento
+    baseline_rewards = experiments.get(baseline_name, {}).get("rewards", np.array([]))
+    jumpstart_values = {}
+    
+    if len(baseline_rewards) > 0:
+        for name, data in experiments.items():
+            if name == baseline_name or len(data["rewards"]) == 0:
+                jumpstart_values[name] = None
+                continue
+            
+            rewards = data["rewards"]
+            phase_transitions = data.get("phase_transitions", [])
+            
+            if phase_transitions:
+                last_transition = phase_transitions[-1]
+                last_phase_idx = int((int(last_transition.get("timestep")) / 10000) + 2)
+                curriculum_rewards_early = rewards[last_phase_idx:last_phase_idx + n_early]
+            else:
+                curriculum_rewards_early = rewards[:n_early]
+            
+            _, jump_pct, _ = compute_jumpstart(
+                curriculum_rewards_early.tolist(),
+                baseline_rewards[:n_early].tolist()
+            )
+            jumpstart_values[name] = jump_pct
     
     lines = [
         r"\begin{table}[htbp]",
         r"\centering",
         r"\caption{Comparación de métodos de curriculum learning}",
         r"\label{tab:results}",
-        r"\begin{tabular}{l" + "c" * (4 + len(thresholds)) + "}",
+        r"\begin{tabular}{l" + "c" * (5 + len(thresholds)) + "}",
         r"\toprule",
     ]
     
     # Header
-    header = r"Método & Asym. Mean & Asym. Std & AUC & Stability"
+    header = r"Método & Asym. Mean & Asym. Std & AUC & Stability & Jumpstart"
     for t in thresholds:
         header += f" & TTT$_{{{t:.0f}}}$"
     header += r" \\"
@@ -482,6 +546,13 @@ def generate_latex_table(
         
         row = f"{name.replace('_', ' ').title()}"
         row += f" & {asymp_mean:.1f} & {asymp_std:.1f} & {auc:.1f} & {stability:.2f}"
+        
+        # Añadir jumpstart
+        jump = jumpstart_values.get(name)
+        if jump is None:
+            row += r" & --"
+        else:
+            row += f" & {jump:+.1f}\\%"
         
         for t in thresholds:
             ttt = compute_time_to_threshold(rewards, timesteps, t)
@@ -528,7 +599,12 @@ def generate_all_plots(
         print(f"No se encontraron datos en {results_dir}")
         return
     
-    print(f"Experimentos cargados: {list(experiments.keys())}")
+    print(f"Experimentos cargados ({len(experiments)}): {list(experiments.keys())}")
+    
+    if EXPERIMENTS_TO_INCLUDE:
+        print(f"Filtrado activo - Solo incluidos: {EXPERIMENTS_TO_INCLUDE}")
+    else:
+        print("Sin filtrado - Incluyendo todos los experimentos")
     
     # Generar gráficos
     plot_learning_curves(

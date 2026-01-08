@@ -3,6 +3,7 @@ Script de comparación avanzada para Breakout con Reward Shaping y Curriculum Le
 Ejecuta 4 variantes experimentales y genera un reporte comparativo justo.
 """
 import os
+import json
 import numpy as np
 import gymnasium as gym
 from typing import Dict, Optional, Tuple
@@ -143,26 +144,27 @@ def get_experiment_configs():
 
     experiments = {}
 
+    # Solo ejecutar curriculum_with_shaping
     # Baseline
-    experiments["baseline_no_shaping"] = {
-        "description": "Baseline clásico",
-        "phases": baseline_phases,
-        "use_shaping": False
-    }
+    # experiments["baseline_no_shaping"] = {
+    #     "description": "Baseline clásico",
+    #     "phases": baseline_phases,
+    #     "use_shaping": False
+    # }
 
-    # Baseline con  Reward Shaping
-    experiments["baseline_with_shaping"] = {
-        "description": "Baseline con Reward Shaping",
-        "phases": baseline_phases,
-        "use_shaping": True
-    }
+    # # Baseline con  Reward Shaping
+    # experiments["baseline_with_shaping"] = {
+    #     "description": "Baseline con Reward Shaping",
+    #     "phases": baseline_phases,
+    #     "use_shaping": True
+    # }
 
-    # Curriculum
-    experiments["curriculum_no_shaping"] = {
-        "description": "Curriculum Combinado clásico",
-        "phases": combined_phases,
-        "use_shaping": False
-    }
+    # # Curriculum
+    # experiments["curriculum_no_shaping"] = {
+    #     "description": "Curriculum Combinado clásico",
+    #     "phases": combined_phases,
+    #     "use_shaping": False
+    # }
 
     # Curriculum con Reward Shaping
     experiments["curriculum_with_shaping"] = {
@@ -197,7 +199,7 @@ class FairEvalCallback(BaseCallback):
         return True
 
 def run_comparison():
-    output_dir = "results_comparison"
+    output_dir = "results"
     os.makedirs(output_dir, exist_ok=True)
     
     configs = get_experiment_configs()
@@ -213,6 +215,13 @@ def run_comparison():
     for exp_name, config in configs.items():
         print(f"\n     Ejecutando: {exp_name.upper()}")
         print(f"     Desc: {config['description']}")
+        
+        # Crear estructura de directorios
+        exp_dir = os.path.join(output_dir, exp_name)
+        model_dir = os.path.join(exp_dir, "models")
+        log_dir = os.path.join(exp_dir, "logs")
+        os.makedirs(model_dir, exist_ok=True)
+        os.makedirs(log_dir, exist_ok=True)
         
         # Setup del modelo
         model = None
@@ -247,23 +256,78 @@ def run_comparison():
             train_env.close()
             total_steps += timesteps
 
-        # Guardar resultados
+        # Guardar modelo
+        model.save(os.path.join(model_dir, "dqn_final"))
+        
+        # Guardar métricas en formato compatible con analyze_results.py
+        timesteps_list = [log["step"] for log in eval_callback.eval_logs]
+        rewards_list = [log["mean_reward"] for log in eval_callback.eval_logs]
+        rewards_std_list = [log["std_reward"] for log in eval_callback.eval_logs]
+        
+        training_metrics = {
+            "timesteps": timesteps_list,
+            "rewards": rewards_list,
+            "rewards_std": rewards_std_list
+        }
+        
+        metrics_path = os.path.join(log_dir, "training_metrics.json")
+        with open(metrics_path, "w") as f:
+            json.dump(training_metrics, f, indent=2)
+        
+        # Generar reporte de métricas
+        report = generate_metrics_report(
+            experiment_name=exp_name,
+            rewards=np.array(rewards_list),
+            timesteps=np.array(timesteps_list),
+            thresholds=[15.0, 30.0, 45.0]
+        )
+        report["final_reward_mean"] = float(rewards_list[-1])
+        report["final_reward_std"] = float(rewards_std_list[-1])
+        
+        report_path = os.path.join(exp_dir, "metrics_report.json")
+        with open(report_path, "w") as f:
+            json.dump(report, f, indent=2)
+        
+        # Guardar configuración
+        config_path = os.path.join(exp_dir, "config.json")
+        with open(config_path, "w") as f:
+            json.dump(config, f, indent=2)
+        
         results[exp_name] = eval_callback.eval_logs
-        model.save(os.path.join(output_dir, f"model_{exp_name}"))
-        print(f"{exp_name} finalizado. Resultado final: {eval_callback.eval_logs[-1]['mean_reward']:.2f}")
+        print(f"✓ {exp_name} finalizado. Resultado final: {eval_callback.eval_logs[-1]['mean_reward']:.2f}")
+        print(f"  Métricas guardadas: {metrics_path}")
+        print(f"  Reporte guardado: {report_path}")
 
     # Generar Reporte Final
-    print("\n" + "="*80)
-    print("REPORTE COMPARATIVO FINAL")
-    print("="*80)
-    print(f"{'Experimento':<30} | {'Reward Final':<12} | {'Max Reward':<12}")
-    print("-" * 60)
+    report_lines = []
+    report_lines.append("\n" + "="*80)
+    report_lines.append("REPORTE COMPARATIVO FINAL")
+    report_lines.append("="*80)
+    report_lines.append(f"{'Experimento':<30} | {'Reward Final':<12} | {'Max Reward':<12}")
+    report_lines.append("-" * 60)
     
     for name, logs in results.items():
         rewards = [l['mean_reward'] for l in logs]
         final_r = rewards[-1]
         max_r = max(rewards)
-        print(f"{name:<30} | {final_r:<12.2f} | {max_r:<12.2f}")
+        line = f"{name:<30} | {final_r:<12.2f} | {max_r:<12.2f}"
+        report_lines.append(line)
+    
+    report_lines.append("="*80)
+    
+    # Imprimir en consola
+    for line in report_lines:
+        print(line)
+    
+    # Guardar en archivo
+    report_file = os.path.join(output_dir, "comparison_report.txt")
+    with open(report_file, "w") as f:
+        f.write("\n".join(report_lines))
+    
+    print(f"\n✓ Reporte comparativo guardado: {report_file}")
+    print(f"✓ Todos los resultados guardados en: {output_dir}/")
+    print(f"\nPara generar gráficas ejecuta:")
+    print(f"  python analyze_results.py --results-dir {output_dir} --output-dir figures_comparison")
     
     fair_eval_env.close()
 
